@@ -1,3 +1,5 @@
+build/
+libigl/
 build/CMakeCache.txt
 build/CMakeFiles/3.5.2/CMakeCCompiler.cmake
 build/CMakeFiles/3.5.2/CMakeCXXCompiler.cmake
