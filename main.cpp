@@ -53,7 +53,7 @@ bool key_down(igl::viewer::Viewer &viewer, unsigned char key, int modifier)
         viewer.core.is_animating = !viewer.core.is_animating;
         return true;
     }
-    
+
     if (key == 'S')
     {
         if (!viewer.core.is_animating){
@@ -71,7 +71,7 @@ bool pre_draw(igl::viewer::Viewer &viewer)
 {
     using namespace Eigen;
     using namespace std;
-    
+
     if (viewer.core.is_animating){
         scene.updateScene(timeStep, CRCoeff, X,T, tolerance,maxConstraintIterations, platX, platT);
         currTime+=timeStep;
@@ -98,27 +98,27 @@ int main(int argc, char *argv[])
     using namespace Eigen;
     using namespace std;
 
-    
+
     // Load scene
     if (argc<2){
         cout<<"Please provide name of scene file!"<<endl;
         return 0;
     }
     cout<<"scene file: "<<std::string(argv[1])<<endl;
-    
-    
+
+
     //create platform
     createPlatform(100.0, 10.0);
-    
+
     scene.loadScene(std::string(DATA_PATH), std::string(argv[1]),platWidth, platHeight, attachM1, attachV1, attachM2, attachV2);
-    
+
     //scene.addMesh(platV, platF, 10000.0, true, platCOM, platOrientation);*/
     scene.updateScene(0.0, CRCoeff, X,T, tolerance,maxConstraintIterations, platX, platT);
-    
-    
+
+
     cout<<"initial X: "<<X<<endl;
     cout<<"initial T: "<<T<<endl;
-    
+
     // Viewer Settings
     igl::viewer::Viewer viewer;
     viewer.data.set_mesh(X,T);
@@ -126,8 +126,8 @@ int main(int argc, char *argv[])
     viewer.callback_key_down = &key_down;
     viewer.core.is_animating = false;
     viewer.core.animation_max_fps = 50.;
-    
-    
+
+
     //Adding options to GUI
     //To add new options, just modify the code below in a similar manner.
     viewer.callback_init = [&](igl::viewer::Viewer& viewer)
@@ -141,13 +141,13 @@ int main(int argc, char *argv[])
         },[&]() {
             return timeStep;
         });
-        
+
         // call to generate menu
         viewer.screen->performLayout();
         return false;
     };
-    
-    
+
+
     cout<<"Press [space] to toggle continuous simulation" << endl;
     cout<<"Press 'S' to advance time step-by-step"<<endl;
     viewer.launch();

@@ -19,7 +19,7 @@ typedef enum ConstraintType{ATTACHMENT, RIGIDITY, COLLISION, BARRIER} Constraint
 
 class Constraint{
 public:
-    
+
     VectorXi particleIndices;  //list of participating indices
     double currValue;                       //the current value of the constraint
     VectorXd currGradient;               //practicleIndices-sized.
@@ -28,7 +28,7 @@ public:
     double refValue;                    //reference value to compare against. Can be rest length, dihedral angle, barrier, etc.
     double stiffness;
     ConstraintType constraintType;  //the type of the constraint, and will affect the value and the gradient. This SHOULD NOT change after initialization!
-    
+
     Constraint(const ConstraintType _constraintType, const VectorXi& _particleIndices, const VectorXd& _radii, const VectorXd& invMasses, const double _refValue, const double _stiffness):constraintType(_constraintType), refValue(_refValue), stiffness(_stiffness)
     {
         currValue=0.0;
@@ -37,7 +37,7 @@ public:
         invMassMatrix=invMasses.asDiagonal();
         radii=_radii;
     }
-    
+
     Constraint(const ConstraintType _constraintType, const int& particleIndex, const double& radius, const double& invMass, const double _refValue, const double _stiffness):constraintType(_constraintType), refValue(_refValue), stiffness(_stiffness)
     {
         currValue=0.0;
@@ -46,11 +46,11 @@ public:
         invMassMatrix.resize(1,1); invMassMatrix(0,0)=invMass;
         radii.resize(1); radii(0)=radius;
     }
-    
-        
+
+
     ~Constraint(){}
-    
-    
+
+
     //updating the value and the gradient vector with given values in xyzxyzxyz format
     void updateValueGradient(const VectorXd& currPos){
         switch (constraintType){
@@ -61,32 +61,31 @@ public:
                 currGradient(1)=-1.0;
                 break;
             }
-                
+
             case RIGIDITY:{
-                /*******************
-                 TODO
-                 *******************/
+
+				//TODO within an object
+
                 break;
             }
-                
+
             case COLLISION:{
-                /*******************
-                 TODO
-                 *******************/
-                
+
+				//TODO particles of different objects colliding
+
                 break;
             }
-                
+
             case BARRIER:{
-                /*******************
-                 TODO
-                 *******************/
+
+				//TODO for the platform
+
                 break;
             }
         }
     }
-    
-    
+
+
     //computes the position differences to resolve the constraint
     void resolveConstraint(const VectorXd& currPos, VectorXd& posDiffs){
         updateValueGradient(currPos);
@@ -95,7 +94,7 @@ public:
             posDiffs=VectorXd::Zero(particleIndices.size());
             return;
         }
-        
+
         //compute posDiffs so that C(currPos+posDiffs) ~= C(currPos)+grad(C)*posdiffs=0, using the lagrange multiplier s.t.
         //Lagrange multiplier lambda holds posdiffs=lambda*invMassMatrix*grad(C) as taught in class
         //don't forget to call updateValueGradient() to get the most update values
