@@ -17,7 +17,6 @@ using namespace std;
 //NOTE default mathematical and world values
 #define PI 3.14159265358979323846264338327950
 #define GravityAcceleration 9.80665
-extern int maxConstraintIterations;
 
 void ConstructEFi(const MatrixXi& FE, const MatrixXi& EF, MatrixXi& EFi, MatrixXd& FESigns)
 {
@@ -121,18 +120,10 @@ public:
         if (isFixed)
             return;
 
-		//NOTE Linear Velocity
 		RowVector3d GravityEffect = RowVector3d( 0, ( -GravityAcceleration * timeStep), 0 );
 		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
 			currVel.row(rowCounter) += GravityEffect;
-		}
-
-		//TODO add angular velocity
-
-		for( int ImpulseCounter = 0; ImpulseCounter < currImpulses.size(); ImpulseCounter++  )
-		{
-			//TODO add impulses
 		}
 
         currImpulses.setZero();
@@ -359,6 +350,9 @@ public:
 
         //aggregating mesh and inter-mesh constraints
 
+		fullConstraints.insert(fullConstraints.end(), collConstraints.begin(), collConstraints.end());
+
+
         /***************
          TODO
          ***************/
@@ -366,30 +360,18 @@ public:
 
         //3. Resolving constraints iteratively until the system is valid (all constraints are below "tolerance" , or passed maxIteration*fullConstraints.size() iterations
         //add proper impulses to rawImpulses for the corrections (CRCoeff*posDiff/timeStep). Don't do that on the initialization step.
-		int IterationCounter = 0;
-		bool NoConstraints = false, IterationLimitReached = false;
-
-		while (!NoConstraints && !IterationLimitReached)
-		{
-			for ( int ConstraintCounter = 0; ConstraintCounter < fullConstraints.size(); ConstraintCounter++  )
-			{
-				//TODO solve fullconstraints
-			}
-
-			for ( int ConstraintCounter = 0; ConstraintCounter < collConstraints.size(); ConstraintCounter++  )
-			{
-				//TODO solve collconstraints
-			}
-
-
-			NoConstraints = ( fullConstraints.size() == 0 ) & ( collConstraints.size() == 0 );
-			IterationCounter++;
-			if (IterationCounter > maxConstraintIterations) // NOTE maxConstraintIterations is created in main.cpp in the original repository
-			{
-				IterationLimitReached = true;
+		bool done = false;
+		for (int iteration = 0; !done && iteration < maxIterations; iteration++) {
+			done = true;
+			for (Constraint c : fullConstraints) {
+				if (c.currValue > tolerance) {
+					done = false;
+					//@TODO let it fix
+					VectorXd posDiffs;
+					c.resolveConstraint(meshes[0].currX, posDiffs);
+				}
 			}
 		}
-
 
         //4. updating velocities to match positions (the position-based step)
         updateMeshValues();
