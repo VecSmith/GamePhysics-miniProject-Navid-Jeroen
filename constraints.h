@@ -79,7 +79,8 @@ public:
             case BARRIER:{
 
 				//TODO for the platform
-
+				//currValue = barrierLocation - randomOtherThing - referenceDistance; // why a double when we should have xyz values how should we know where the barrier counts?
+				//currValue =  - refValue; //
                 break;
             }
         }
@@ -101,6 +102,17 @@ public:
         /*******************
          TODO
          *******************/
+		//
+		//C(currPos) + lambda * gradient(C)^transposed * inverseMass * gradient(C) = 0
+		// lambda = -C(currPos) / (gradient(C)^transposed * inverseMass * gradient(C))
+		// I think C(currPos) equals currValue after an  updateValueGradient(currPos); call so than
+
+		//currValue + lambda * currGradient.transpose() * invMassMatrix * currGradient;
+		double lambda = -currValue / (currGradient.transpose() * invMassMatrix * currGradient);
+		posDiffs = lambda * invMassMatrix * currGradient;
+		//currValue + currGradient*posDiff; // = 0
+
+		//posdiffs=lambda*invMassMatrix*grad(C)
     }
 };
 
