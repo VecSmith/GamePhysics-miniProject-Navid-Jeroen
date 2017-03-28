@@ -25,6 +25,7 @@ public:
     VectorXd currGradient;               //practicleIndices-sized.
     MatrixXd invMassMatrix;              //M^{-1} matrix
     VectorXd radii;
+
     double refValue;                    //reference value to compare against. Can be rest length, dihedral angle, barrier, etc.
     double stiffness;
     ConstraintType constraintType;  //the type of the constraint, and will affect the value and the gradient. This SHOULD NOT change after initialization!
@@ -47,9 +48,7 @@ public:
         radii.resize(1); radii(0)=radius;
     }
 
-
     ~Constraint(){}
-
 
     //updating the value and the gradient vector with given values in xyzxyzxyz format
     void updateValueGradient(const VectorXd& currPos){
@@ -81,6 +80,9 @@ public:
 				//TODO for the platform
 				//currValue = barrierLocation - randomOtherThing - referenceDistance; // why a double when we should have xyz values how should we know where the barrier counts?
 				//currValue =  - refValue; //
+
+                currValue = currPos(0)-refValue;
+                currGradient(0)=1.0;
                 break;
             }
         }

@@ -346,6 +346,39 @@ public:
 		// Constraint(const ConstraintType _constraintType, const int& particleIndex, const double& radius, const double& invMass, const double _refValue, const double _stiffness):constraintType(_constraintType), refValue(_refValue), stiffness(_stiffness)
 		// Constraint PlatformBarrier; // no default constructor
 
+        //NOTE creating Platform Barrier constraints
+        for (int MeshCounter = 0; MeshCounter < meshes.size(); MeshCounter++)
+        {
+            Mesh Object = meshes[MeshCounter];
+
+            //NOTE loop through the objects particles
+            for ( int ParticleCounter = 0; ParticleCounter < Object.currX.rows() ; ParticleCounter++ )
+            {
+
+				RowVector3d ParticlePosition = Object.currX.row(ParticleCounter);
+				double ParticleRadius = Object.radii(ParticleCounter);
+
+                VectorXi particleIndices(1); particleIndices << Object.rawOffset + (ParticleCounter * 3);
+				VectorXd rawInvMasses(1); rawInvMasses << Object.invMasses(MeshCounter);
+                VectorXd rawRadii(1); rawRadii << ParticleRadius;
+
+                //Constraint platformBarrier(BARRIER,  particleIndex, rawRadii, rawInvMasses, 0.0, 1.0);
+                //collConstraints.push_back(platformBarrier);
+
+                bool XLimitation = abs(ParticlePosition[0] - platWidth/2) > ParticleRadius;
+                bool ZLimitation = abs(ParticlePosition[2] - platWidth/2) > ParticleRadius;
+
+                //NOTE if
+                if ( XLimitation && ZLimitation )
+                {
+                    Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
+					VectorXd test(1); test << Object.currX.row(ParticleCounter)[1];
+					platformBarrier.updateValueGradient( test );
+                    fullConstraints.push_back(platformBarrier);
+                }
+            }
+        }
+
         //NOTE lecture 7 slide 11 onwards
 
         //aggregating mesh and inter-mesh constraints
@@ -364,14 +397,25 @@ public:
 		for (int iteration = 0; !done && iteration < maxIterations; iteration++) {
 			done = true;
 			for (Constraint c : fullConstraints) {
-				if (c.currValue > tolerance) {
+				if ( abs(c.currValue) > tolerance) {
 					done = false;
 					//@TODO let it fix
 					VectorXd posDiffs;
-					c.resolveConstraint(meshes[0].currX, posDiffs);
+                    if ( c.constraintType == BARRIER )
+                    {
+                        for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ )
+                        {
+                            VectorXd test(1); test << rawX[ ( c.particleIndices[ParticleIndex] ) + 1];
+                            c.resolveConstraint( test, posDiffs );
+                        }
+                    }
+
 				}
 			}
 		}
+
+        fullConstraints.clear();
+        collConstraints.clear();
 
         //4. updating velocities to match positions (the position-based step)
         updateMeshValues();
