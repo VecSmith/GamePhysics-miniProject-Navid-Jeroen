@@ -407,6 +407,8 @@ public:
                         {
                             VectorXd test(1); test << rawX[ ( c.particleIndices[ParticleIndex] ) + 1];
                             c.resolveConstraint( test, posDiffs );
+							test += posDiffs;
+							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
                         }
                     }
 
