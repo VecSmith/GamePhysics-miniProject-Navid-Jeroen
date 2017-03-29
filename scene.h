@@ -422,7 +422,7 @@ public:
 					}
 				}
 
-                if  ( abs(c.currValue) == 0 && c.constraintType == RIGIDITY )
+                if  ( c.constraintType == RIGIDITY )
                 {
 					VectorXd posDiffs;
                     VectorXd AllParticles(6);
