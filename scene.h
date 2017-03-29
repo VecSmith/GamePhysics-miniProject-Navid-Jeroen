@@ -373,7 +373,7 @@ public:
                 {
                     Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
 					VectorXd test(1); test << Object.currX.row(ParticleCounter)[1];
-					platformBarrier.updateValueGradient( test );
+					//platformBarrier.updateValueGradient( test );
                     fullConstraints.push_back(platformBarrier);
                 }
             }
@@ -384,6 +384,7 @@ public:
         //aggregating mesh and inter-mesh constraints
 
 		fullConstraints.insert(fullConstraints.end(), collConstraints.begin(), collConstraints.end());
+		fullConstraints.insert(fullConstraints.end(), interMeshConstraints.begin(), interMeshConstraints.end());
 
 
         /***************
@@ -397,21 +398,34 @@ public:
 		for (int iteration = 0; !done && iteration < maxIterations; iteration++) {
 			done = true;
 			for (Constraint c : fullConstraints) {
-				if ( abs(c.currValue) > tolerance) {
-					done = false;
-					//@TODO let it fix
-					VectorXd posDiffs;
-                    if ( c.constraintType == BARRIER )
-                    {
-                        for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ )
-                        {
-                            VectorXd test(1); test << rawX[ ( c.particleIndices[ParticleIndex] ) + 1];
-                            c.resolveConstraint( test, posDiffs );
+				VectorXd posDiffs;
+                if ( c.constraintType == BARRIER ){
+					for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ ) {
+						VectorXd test(1); test << rawX[ ( c.particleIndices[ParticleIndex] ) + 1];
+						c.updateValueGradient(test);
+						if (abs(c.currValue) > tolerance) {
+							done = false;
+							c.resolveConstraint(test, posDiffs);
 							test += posDiffs;
 							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
-                        }
+						}
                     }
-
+				}
+				else {
+					VectorXd test(c.particleIndices.size());
+					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++){
+							 test(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
+					}
+					c.updateValueGradient(test);
+					if (abs(c.currValue) > tolerance) {
+						done = false;
+						c.resolveConstraint(test, posDiffs);
+						test += posDiffs;
+						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
+							rawX[(c.particleIndices[ParticleIndex])] = test(ParticleIndex);
+						}
+						
+					}
 				}
 			}
 		}
