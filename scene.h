@@ -327,6 +327,7 @@ public:
 
         vector<Constraint> fullConstraints;
         vector<Constraint> collConstraints;
+        vector<Constraint> rigidityConstraints;
 
         //2. detecting collisions and generating constraints the are aggragated in collConstraints
         for (int i=0;i<meshes.size();i++)
@@ -334,24 +335,15 @@ public:
 				meshes[i].CreateCollisionConstraint(meshes[j], collConstraints);
 			}
 
-        //creating platform-collision constraints for y<platHeight when either x or z are between [-platWicth, platWidth]
-
-		//TODO create barrier for platform
-		//     from the original git repository:
-		//     A considerable difference is that the platform is no longer a mesh in the usual sense (although it appears as such)
-		//	   it is treated as a barrier constraint, where objects cannot fall beyond it. Particles are only assigned to loaded meshes.
-
-		//TODO which constructor to use for creating a barrier constraint
-		// Constraint(const ConstraintType _constraintType, const VectorXi& _particleIndices, const VectorXd& _radii, const VectorXd& invMasses, const double _refValue, const double _stiffness):constraintType(_constraintType), refValue(_refValue), stiffness(_stiffness)
-		// Constraint(const ConstraintType _constraintType, const int& particleIndex, const double& radius, const double& invMass, const double _refValue, const double _stiffness):constraintType(_constraintType), refValue(_refValue), stiffness(_stiffness)
-		// Constraint PlatformBarrier; // no default constructor
-
         //NOTE creating Platform Barrier constraints
         for (int MeshCounter = 0; MeshCounter < meshes.size(); MeshCounter++)
         {
             Mesh Object = meshes[MeshCounter];
 
-            //NOTE loop through the objects particles
+            //NOTE RIGIDITY, inter-mesh constraints
+            rigidityConstraints.insert( rigidityConstraints.end(), Object.meshConstraints.begin(), Object.meshConstraints.end() );
+
+            //NOTE BARRIER, loop through the objects particles
             for ( int ParticleCounter = 0; ParticleCounter < Object.currX.rows() ; ParticleCounter++ )
             {
 
@@ -368,7 +360,7 @@ public:
                 bool XLimitation = abs(ParticlePosition[0] - platWidth/2) > ParticleRadius;
                 bool ZLimitation = abs(ParticlePosition[2] - platWidth/2) > ParticleRadius;
 
-                //NOTE if
+                //NOTE check whether object need the barrier constraint or not
                 if ( XLimitation && ZLimitation )
                 {
                     Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
@@ -385,7 +377,7 @@ public:
 
 		fullConstraints.insert(fullConstraints.end(), collConstraints.begin(), collConstraints.end());
 		fullConstraints.insert(fullConstraints.end(), interMeshConstraints.begin(), interMeshConstraints.end());
-
+        fullConstraints.insert(fullConstraints.end(), rigidityConstraints.begin(), rigidityConstraints.end());
 
         /***************
          TODO
@@ -410,8 +402,10 @@ public:
 							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
 						}
                     }
+
 				}
-				else {
+
+				if ( c.constraintType == ATTACHMENT ) {
 					VectorXd test(c.particleIndices.size());
 					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++){
 							 test(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
@@ -424,14 +418,31 @@ public:
 						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
 							rawX[(c.particleIndices[ParticleIndex])] = test(ParticleIndex);
 						}
-						
+
 					}
 				}
+
+                if  ( abs(c.currValue) == 0 && c.constraintType == RIGIDITY )
+                {
+					VectorXd posDiffs;
+                    VectorXd AllParticles(6);
+                    AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
+                                    rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
+                    c.resolveConstraint( AllParticles, posDiffs );
+                    rawX[(c.particleIndices[0])] += posDiffs(0);
+                    rawX[(c.particleIndices[1])] += posDiffs(1);
+                    rawX[(c.particleIndices[2])] += posDiffs(2);
+                    rawX[(c.particleIndices[3])] += posDiffs(3);
+                    rawX[(c.particleIndices[4])] += posDiffs(4);
+                    rawX[(c.particleIndices[5])] += posDiffs(5);
+
+                }
 			}
 		}
 
         fullConstraints.clear();
         collConstraints.clear();
+        rigidityConstraints.clear();
 
         //4. updating velocities to match positions (the position-based step)
         updateMeshValues();

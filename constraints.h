@@ -64,7 +64,19 @@ public:
             case RIGIDITY:{
 
 				//TODO within an object
-
+                double DeltaX = currPos(0) - currPos(3);
+                double DeltaY = currPos(1) - currPos(4);
+                double DeltaZ = currPos(2) - currPos(5);
+                double EdgeLength = sqrt( ( DeltaX * DeltaX ) + ( DeltaY * DeltaY ) + ( DeltaZ * DeltaZ ) );
+                currValue = EdgeLength - refValue;
+                currGradient(0) = DeltaX/EdgeLength;
+                currGradient(1) = DeltaY/EdgeLength;
+                currGradient(2) = DeltaZ/EdgeLength;
+                currGradient(3) = -DeltaX/EdgeLength;
+                currGradient(4) = -DeltaY/EdgeLength;
+                currGradient(5) = -DeltaZ/EdgeLength;
+                if (currValue < 0)
+                    int j=0;
                 break;
             }
 
@@ -97,6 +109,12 @@ public:
             posDiffs=VectorXd::Zero(particleIndices.size());
             return;
         }
+
+		if (constraintType == RIGIDITY && abs(currValue) < 0.01)
+		{
+			posDiffs = VectorXd::Zero(particleIndices.size());
+			return;
+		}
 
         //compute posDiffs so that C(currPos+posDiffs) ~= C(currPos)+grad(C)*posdiffs=0, using the lagrange multiplier s.t.
         //Lagrange multiplier lambda holds posdiffs=lambda*invMassMatrix*grad(C) as taught in class
