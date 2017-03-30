@@ -76,6 +76,16 @@ public:
         RowVector3d XMin2=m2.currX.colwise().minCoeff();
         RowVector3d XMax2=m2.currX.colwise().maxCoeff();
 
+
+        //New code 20/Mar/2017!!!
+        double rmax1=radii.maxCoeff();
+        double rmax2=m2.radii.maxCoeff();
+        XMin1.array()-=rmax1;
+        XMax1.array()+=rmax1;
+        XMin2.array()-=rmax2;
+        XMax2.array()+=rmax2;
+        //end of new code
+
         //checking all axes for non-intersection of the dimensional interval
         for (int i=0;i<3;i++)
             if ((XMax1(i)<XMin2(i))||(XMax2(i)<XMin1(i)))
@@ -202,6 +212,11 @@ public:
         massV*=density/3.0;
         //massV.setOnes();
         invMasses=1.0/massV.array();
+
+        //New ode 30/mar/2017
+        if (isFixed)
+            invMasses.setZero();
+        //end new code
 
         //radii are the maximum half-edge lengths
         radii=VectorXd::Zero(currX.rows());
@@ -355,7 +370,7 @@ public:
 				double ParticleRadius = Object.radii(ParticleCounter);
 
                 VectorXi particleIndices(1); particleIndices << Object.rawOffset + (ParticleCounter * 3);
-				VectorXd rawInvMasses(1); rawInvMasses << Object.invMasses(MeshCounter);
+				VectorXd rawInvMasses(1); rawInvMasses << Object.invMasses(ParticleCounter);
                 VectorXd rawRadii(1); rawRadii << ParticleRadius;
 
                 //Constraint platformBarrier(BARRIER,  particleIndex, rawRadii, rawInvMasses, 0.0, 1.0);
