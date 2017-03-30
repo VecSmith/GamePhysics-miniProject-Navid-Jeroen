@@ -79,16 +79,21 @@ public:
 
             case COLLISION:{
 
-				//TODO particles of different objects colliding
-
+                RowVector3d ParticleCenter1 = RowVector3d( currPos(0), currPos(1), currPos(2) );
+                RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );
+                RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
+                currValue = ConnectorVector.norm() - ( radii(0) + radii(3) );
+                ConnectorVector = ConnectorVector.normalized();
+                currGradient(0) = -ConnectorVector(0) * currValue;
+                currGradient(1) = -ConnectorVector(1) * currValue;
+                currGradient(2) = -ConnectorVector(2) * currValue;
+                currGradient(3) = ConnectorVector(0) * currValue;
+                currGradient(4) = ConnectorVector(1) * currValue;
+                currGradient(5) = ConnectorVector(2) * currValue;
                 break;
             }
 
             case BARRIER:{
-
-				//TODO for the platform
-				//currValue = barrierLocation - randomOtherThing - referenceDistance; // why a double when we should have xyz values how should we know where the barrier counts?
-				//currValue =  - refValue; //
 
                 currValue = currPos(0)-refValue;
                 currGradient(0)=1.0;

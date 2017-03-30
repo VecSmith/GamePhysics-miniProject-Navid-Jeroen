@@ -398,11 +398,6 @@ public:
 		fullConstraints.insert(fullConstraints.end(), interMeshConstraints.begin(), interMeshConstraints.end());
         fullConstraints.insert(fullConstraints.end(), rigidityConstraints.begin(), rigidityConstraints.end());
 
-        /***************
-         TODO
-         ***************/
-
-
         //3. Resolving constraints iteratively until the system is valid (all constraints are below "tolerance" , or passed maxIteration*fullConstraints.size() iterations
         //add proper impulses to rawImpulses for the corrections (CRCoeff*posDiff/timeStep). Don't do that on the initialization step.
 		bool done = false;
@@ -441,21 +436,20 @@ public:
 					}
 				}
 
-                if  ( c.constraintType == RIGIDITY )
+                if  ( c.constraintType == RIGIDITY || c.constraintType == COLLISION )
                 {
 					VectorXd posDiffs;
                     VectorXd AllParticles(6);
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.resolveConstraint( AllParticles, posDiffs );
-                    rawX[(c.particleIndices[0])] += posDiffs(0);
-                    rawX[(c.particleIndices[1])] += posDiffs(1);
-                    rawX[(c.particleIndices[2])] += posDiffs(2);
-                    rawX[(c.particleIndices[3])] += posDiffs(3);
-                    rawX[(c.particleIndices[4])] += posDiffs(4);
-                    rawX[(c.particleIndices[5])] += posDiffs(5);
 
+                    for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+                    {
+                        rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+                    }
                 }
+
 			}
 		}
 
