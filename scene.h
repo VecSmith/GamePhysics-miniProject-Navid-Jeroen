@@ -149,7 +149,11 @@ public:
     //updating the current velocities to match the positional changes
     void projectVelocities(double timeStep){
 
-		//TODO this method should be called after constraints are resolved to update the new velocities. slide 6 lecture 7 the yellow thingy
+        //NOTE this method is called after constraints are resolved to update the new velocities. lecture 7 slide 6 the yellow thingy
+        for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
+        {
+            currVel(rowCounter) = ( prevX(rowCounter) - currX(rowCounter) ) / timeStep;
+        }
 
         prevX=currX;
     }
