@@ -63,7 +63,6 @@ public:
 
             case RIGIDITY:{
 
-				//TODO within an object
                 double DeltaX = currPos(0) - currPos(3);
                 double DeltaY = currPos(1) - currPos(4);
                 double DeltaZ = currPos(2) - currPos(5);
@@ -75,8 +74,6 @@ public:
                 currGradient(3) = -DeltaX/EdgeLength;
                 currGradient(4) = -DeltaY/EdgeLength;
                 currGradient(5) = -DeltaZ/EdgeLength;
-                if (currValue < 0)
-                    int j=0;
                 break;
             }
 
