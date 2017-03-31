@@ -134,8 +134,15 @@ public:
 		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
 			currVel.row(rowCounter) += GravityEffect;
+
+			currVel.row(rowCounter) += currImpulses.row(rowCounter);
 		}
 
+		cout << "currImpulses:" << endl;
+		for (int j = 0; j <  currImpulses.rows(); j++) {
+		
+			cout << currImpulses.row(j) << endl;
+		}
         currImpulses.setZero();
     }
 
@@ -294,6 +301,7 @@ public:
                 //cout<<"meshes[i].currX.row(j) after:"<<meshes[i].currX.row(j)<<endl;
                 meshes[i].currVel.row(j)<<rawVel.segment(meshes[i].rawOffset+3*j,3).transpose();
                 meshes[i].currImpulses.row(j)<<rawImpulses.segment(meshes[i].rawOffset+3*j,3).transpose();
+			//	cout << meshes[i].currImpulses.row(j) << endl;
             }
         }
     }
@@ -406,26 +414,65 @@ public:
 			for (Constraint c : fullConstraints) {
 				VectorXd posDiffs;
                 if ( c.constraintType == BARRIER ){
+					double impulse = -1;
 					for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ ) {
-						VectorXd test(1); test << rawX[ ( c.particleIndices[ParticleIndex] ) + 1];
+						int indices = (c.particleIndices[ParticleIndex]) + 1;
+						VectorXd test(1); test << rawX[indices];
 						c.updateValueGradient(test);
 						if (abs(c.currValue) > tolerance) {
 							done = false;
 							c.resolveConstraint(test, posDiffs);
 							test += posDiffs;
 							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
+							if (timeStep > 0) {
+								double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
+								/*if (a > 0) {
+									a = 100;
+								}*/
+								//rawImpulses(indices) = a * 10;
+								if (impulse == -1 || impulse == 0) {
+									impulse = a;
+								}
+							}
+							int tempOffset = 0;
+							int tempOffset2 = 0;
+							for (int i= 0; i < meshes.size(); i++) {
+								tempOffset2 = meshes[i].rawOffset;
+								if (tempOffset2 <= indices) {
+									if (tempOffset2 > indices) {
+										break;
+									}
+									else {
+										tempOffset = i;
+									}
+								}
+								
+							}
+							if (impulse > 0) {
+								for (int i = 0; i < meshes[tempOffset].currX.rows(); i++) {
+									rawImpulses(meshes[tempOffset].rawOffset + i * 3 + 1) = impulse * 5;
+								}
+							}
+							
 						}
                     }
+					if (impulse > 0) {
+					/*	for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
+							int indices = (c.particleIndices[ParticleIndex]) + 1;
+							rawImpulses(indices) = impulse;
+						}*/
+						cout << "test";
+					}
 
 				}
 
-				if ( c.constraintType == ATTACHMENT ) {
+				else if ( c.constraintType == ATTACHMENT) {
 					VectorXd test(c.particleIndices.size());
 					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++){
 							 test(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
 					}
-					c.updateValueGradient(test);
-					if (abs(c.currValue) > tolerance) {
+					c.updateValueGradient(test);//cant do else since c isnt used next time :(
+					if (abs(c.currValue) > tolerance) { // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
 						done = false;
 						c.resolveConstraint(test, posDiffs);
 						test += posDiffs;
