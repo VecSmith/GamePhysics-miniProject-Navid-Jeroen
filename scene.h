@@ -134,8 +134,14 @@ public:
 		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
 			currVel.row(rowCounter) += GravityEffect;
-
-			currVel.row(rowCounter) += currImpulses.row(rowCounter);
+			//impulse = F * timestep
+			// F = m * a
+			// v+ = v- + a*timestep
+			// impulse / timestep / mass * timestep + v- = v+
+			// v+ = v- + impulse * invMass
+			cout << "before imp" << currVel.row(rowCounter) << endl;
+			currVel.row(rowCounter) += currImpulses.row(rowCounter) * invMasses[rowCounter]; 
+			cout << "after imp" << currVel.row(rowCounter) << endl;
 		}
 
 		cout << "currImpulses:" << endl;
@@ -429,12 +435,15 @@ public:
 								/*if (a > 0) {
 									a = 100;
 								}*/
-								//rawImpulses(indices) = a * 10;
+								rawImpulses(indices) = a * 1;
 								if (impulse == -1 || impulse == 0) {
 									impulse = a;
 								}
+								if (impulse > 0) {
+									cout << "test" << endl;
+								}
 							}
-							int tempOffset = 0;
+						/*	int tempOffset = 0;
 							int tempOffset2 = 0;
 							for (int i= 0; i < meshes.size(); i++) {
 								tempOffset2 = meshes[i].rawOffset;
@@ -450,19 +459,19 @@ public:
 							}
 							if (impulse > 0) {
 								for (int i = 0; i < meshes[tempOffset].currX.rows(); i++) {
-									rawImpulses(meshes[tempOffset].rawOffset + i * 3 + 1) = impulse * 5;
+									rawImpulses(meshes[tempOffset].rawOffset + i * 3 + 1) = impulse;
 								}
-							}
+							}*/
 							
 						}
                     }
-					if (impulse > 0) {
-					/*	for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
+					/*if (impulse > 0) {
+						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
 							int indices = (c.particleIndices[ParticleIndex]) + 1;
 							rawImpulses(indices) = impulse;
-						}*/
+						}
 						cout << "test";
-					}
+					}*/
 
 				}
 
@@ -483,7 +492,7 @@ public:
 					}
 				}
 
-                if  ( c.constraintType == RIGIDITY || c.constraintType == COLLISION )
+                /*if  ( c.constraintType == RIGIDITY || c.constraintType == COLLISION )
                 {
 					VectorXd posDiffs;
                     VectorXd AllParticles(6);
@@ -495,7 +504,7 @@ public:
                     {
                         rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                     }
-                }
+                }*/
 
 			}
 		}
