@@ -139,16 +139,17 @@ public:
 			// v+ = v- + a*timestep
 			// impulse / timestep / mass * timestep + v- = v+
 			// v+ = v- + impulse * invMass
-			cout << "before imp" << currVel.row(rowCounter) << endl;
-			currVel.row(rowCounter) += currImpulses.row(rowCounter) * invMasses[rowCounter]; 
-			cout << "after imp" << currVel.row(rowCounter) << endl;
+			//cout << "before imp" << currVel.row(rowCounter) << endl;
+
+			//cout << "after imp" << currVel.row(rowCounter) << endl;
 		}
 
-		cout << "currImpulses:" << endl;
-		for (int j = 0; j <  currImpulses.rows(); j++) {
-		
-			cout << currImpulses.row(j) << endl;
-		}
+		//cout << "currImpulses:" << endl;
+        for (int ImpulseCounter = 0; ImpulseCounter <  currImpulses.rows(); ImpulseCounter++)
+        {
+            currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);
+        }
+
         currImpulses.setZero();
     }
 
@@ -390,8 +391,8 @@ public:
                 //Constraint platformBarrier(BARRIER,  particleIndex, rawRadii, rawInvMasses, 0.0, 1.0);
                 //collConstraints.push_back(platformBarrier);
 
-                bool XLimitation = abs(ParticlePosition[0] - platWidth/2) > ParticleRadius;
-                bool ZLimitation = abs(ParticlePosition[2] - platWidth/2) > ParticleRadius;
+                bool XLimitation = abs(ParticlePosition[0]) - ParticleRadius < (platWidth / 2);
+                bool ZLimitation = abs(ParticlePosition[2]) - ParticleRadius < (platWidth / 2);
 
                 //NOTE check whether object need the barrier constraint or not
                 if ( XLimitation && ZLimitation )
@@ -417,61 +418,31 @@ public:
 		bool done = false;
 		for (int iteration = 0; !done && iteration < maxIterations; iteration++) {
 			done = true;
+            double Impulse = -1;
 			for (Constraint c : fullConstraints) {
 				VectorXd posDiffs;
-                if ( c.constraintType == BARRIER ){
+
+                if ( c.constraintType == BARRIER )
+                {
 					double impulse = -1;
 					for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ ) {
 						int indices = (c.particleIndices[ParticleIndex]) + 1;
 						VectorXd test(1); test << rawX[indices];
 						c.updateValueGradient(test);
-						if (abs(c.currValue) > tolerance) {
+						if (abs(c.currValue) > tolerance )
+                        {
 							done = false;
 							c.resolveConstraint(test, posDiffs);
 							test += posDiffs;
 							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
-							if (timeStep > 0) {
-								double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
-								/*if (a > 0) {
-									a = 100;
-								}*/
-								rawImpulses(indices) = a * 1;
-								if (impulse == -1 || impulse == 0) {
-									impulse = a;
-								}
-								if (impulse > 0) {
-									cout << "test" << endl;
-								}
-							}
-						/*	int tempOffset = 0;
-							int tempOffset2 = 0;
-							for (int i= 0; i < meshes.size(); i++) {
-								tempOffset2 = meshes[i].rawOffset;
-								if (tempOffset2 <= indices) {
-									if (tempOffset2 > indices) {
-										break;
-									}
-									else {
-										tempOffset = i;
-									}
-								}
-								
-							}
-							if (impulse > 0) {
-								for (int i = 0; i < meshes[tempOffset].currX.rows(); i++) {
-									rawImpulses(meshes[tempOffset].rawOffset + i * 3 + 1) = impulse;
-								}
-							}*/
-							
+                            if ( timeStep > 0.0 )
+                            {
+								if (posDiffs(0) > 0.0)
+									int debug = 0;
+                                rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * (posDiffs(0) * 2) ) / timeStep );
+                            }
 						}
                     }
-					/*if (impulse > 0) {
-						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
-							int indices = (c.particleIndices[ParticleIndex]) + 1;
-							rawImpulses(indices) = impulse;
-						}
-						cout << "test";
-					}*/
 
 				}
 
@@ -481,20 +452,26 @@ public:
 							 test(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
 					}
 					c.updateValueGradient(test);//cant do else since c isnt used next time :(
-					if (abs(c.currValue) > tolerance) { // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
+					if ( abs(c.currValue) > tolerance ) // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
+                    {
 						done = false;
 						c.resolveConstraint(test, posDiffs);
 						test += posDiffs;
-						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
+						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+                        {
 							rawX[(c.particleIndices[ParticleIndex])] = test(ParticleIndex);
+                            if ( timeStep > 0.0 )
+                            {
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep );
+                            }
 						}
 
 					}
 				}
 
-                /*if  ( c.constraintType == RIGIDITY || c.constraintType == COLLISION )
+                if  ( c.constraintType == RIGIDITY || c.constraintType == COLLISION )
                 {
-					VectorXd posDiffs;
+                    VectorXd posDiffs;
                     VectorXd AllParticles(6);
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
@@ -503,8 +480,12 @@ public:
                     for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
                     {
                         rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+                        if ( timeStep > 0.0 )
+                        {
+                            rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep );
+                        }
                     }
-                }*/
+                }
 
 			}
 		}

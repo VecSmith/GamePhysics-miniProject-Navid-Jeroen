@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     // Load scene
     if (argc<2){
         cout<<"Please provide name of scene file!"<<endl;
-		argv[1] = "towersceneattached.txt";
+		argv[1] = "singleboxscene.txt";
         //return 0;
     }
     cout<<"scene file: "<<std::string(argv[1])<<endl;

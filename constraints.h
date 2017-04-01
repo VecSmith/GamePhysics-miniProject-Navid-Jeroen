@@ -95,7 +95,7 @@ public:
 
             case BARRIER:{
 
-                currValue = currPos(0)-refValue;
+                currValue = currPos(0) - refValue;
                 currGradient(0)=1.0;
                 break;
             }
