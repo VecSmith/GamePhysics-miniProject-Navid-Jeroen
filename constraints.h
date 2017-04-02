@@ -53,6 +53,7 @@ public:
     //updating the value and the gradient vector with given values in xyzxyzxyz format
     void updateValueGradient(const VectorXd& currPos){
         switch (constraintType){
+
             case ATTACHMENT:{
                 //use this as an example on how to fill these fields
                 currValue=(currPos(0)-currPos(1))-refValue;
@@ -61,8 +62,8 @@ public:
                 break;
             }
 
-            case RIGIDITY:{
-
+            case RIGIDITY:
+            {
                 double DeltaX = currPos(0) - currPos(3);
                 double DeltaY = currPos(1) - currPos(4);
                 double DeltaZ = currPos(2) - currPos(5);
@@ -77,12 +78,13 @@ public:
                 break;
             }
 
-            case COLLISION:{
-
+            case COLLISION:
+            {
                 RowVector3d ParticleCenter1 = RowVector3d( currPos(0), currPos(1), currPos(2) );
                 RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );
                 RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
                 currValue = ConnectorVector.norm() - ( radii(0) + radii(3) );
+                currValue *= 2.0;
                 ConnectorVector = ConnectorVector.normalized();
                 currGradient(0) = -ConnectorVector(0) * currValue;
                 currGradient(1) = -ConnectorVector(1) * currValue;
@@ -93,10 +95,10 @@ public:
                 break;
             }
 
-            case BARRIER:{
-
+            case BARRIER:
+            {
                 currValue = currPos(0) - refValue;
-                currGradient(0)=1.0;
+                currGradient(0) = 1.0;
                 break;
             }
         }
@@ -112,7 +114,7 @@ public:
             return;
         }
 
-		if (constraintType == RIGIDITY && abs(currValue) < 0.01)
+		if (constraintType == RIGIDITY && abs(currValue) < 0.00001)
 		{
 			posDiffs = VectorXd::Zero(particleIndices.size());
 			return;
@@ -121,20 +123,15 @@ public:
         //compute posDiffs so that C(currPos+posDiffs) ~= C(currPos)+grad(C)*posdiffs=0, using the lagrange multiplier s.t.
         //Lagrange multiplier lambda holds posdiffs=lambda*invMassMatrix*grad(C) as taught in class
         //don't forget to call updateValueGradient() to get the most update values
-        /*******************
-         TODO
-         *******************/
-		//
-		//C(currPos) + lambda * gradient(C)^transposed * inverseMass * gradient(C) = 0
+
+		// C(currPos) + lambda * gradient(C)^transposed * inverseMass * gradient(C) = 0
 		// lambda = -C(currPos) / (gradient(C)^transposed * inverseMass * gradient(C))
 		// I think C(currPos) equals currValue after an  updateValueGradient(currPos); call so than
-
 		//currValue + lambda * currGradient.transpose() * invMassMatrix * currGradient;
+        
 		double lambda = -currValue / (currGradient.transpose() * invMassMatrix * currGradient);
 		posDiffs = lambda * invMassMatrix * currGradient;
-		//currValue + currGradient*posDiff; // = 0
 
-		//posdiffs=lambda*invMassMatrix*grad(C)
     }
 };
 

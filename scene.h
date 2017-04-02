@@ -144,7 +144,6 @@ public:
 			//cout << "after imp" << currVel.row(rowCounter) << endl;
 		}
 
-		//cout << "currImpulses:" << endl;
         for (int ImpulseCounter = 0; ImpulseCounter <  currImpulses.rows(); ImpulseCounter++)
         {
             currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);
@@ -362,6 +361,7 @@ public:
         vector<Constraint> fullConstraints;
         vector<Constraint> collConstraints;
         vector<Constraint> rigidityConstraints;
+        vector<Constraint> barrierConstraints;
 
         //2. detecting collisions and generating constraints the are aggragated in collConstraints
         for (int i=0;i<meshes.size();i++)
@@ -388,9 +388,6 @@ public:
 				VectorXd rawInvMasses(1); rawInvMasses << Object.invMasses(ParticleCounter);
                 VectorXd rawRadii(1); rawRadii << ParticleRadius;
 
-                //Constraint platformBarrier(BARRIER,  particleIndex, rawRadii, rawInvMasses, 0.0, 1.0);
-                //collConstraints.push_back(platformBarrier);
-
                 bool XLimitation = abs(ParticlePosition[0]) - ParticleRadius < (platWidth / 2);
                 bool ZLimitation = abs(ParticlePosition[2]) - ParticleRadius < (platWidth / 2);
 
@@ -398,20 +395,20 @@ public:
                 if ( XLimitation && ZLimitation )
                 {
                     Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
-					VectorXd test(1); test << Object.currX.row(ParticleCounter)[1];
-					//platformBarrier.updateValueGradient( test );
                     fullConstraints.push_back(platformBarrier);
                 }
             }
         }
+
 
         //NOTE lecture 7 slide 11 onwards
 
         //aggregating mesh and inter-mesh constraints
 
 		fullConstraints.insert(fullConstraints.end(), collConstraints.begin(), collConstraints.end());
-		fullConstraints.insert(fullConstraints.end(), interMeshConstraints.begin(), interMeshConstraints.end());
         fullConstraints.insert(fullConstraints.end(), rigidityConstraints.begin(), rigidityConstraints.end());
+		fullConstraints.insert(fullConstraints.end(), interMeshConstraints.begin(), interMeshConstraints.end());
+        fullConstraints.insert(fullConstraints.end(), barrierConstraints.begin(), barrierConstraints.end());
 
         //3. Resolving constraints iteratively until the system is valid (all constraints are below "tolerance" , or passed maxIteration*fullConstraints.size() iterations
         //add proper impulses to rawImpulses for the corrections (CRCoeff*posDiff/timeStep). Don't do that on the initialization step.
@@ -425,11 +422,12 @@ public:
                 if ( c.constraintType == BARRIER )
                 {
 					double impulse = -1;
-					for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ ) {
+					for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ )
+                    {
 						int indices = (c.particleIndices[ParticleIndex]) + 1;
 						VectorXd test(1); test << rawX[indices];
 						c.updateValueGradient(test);
-						if (abs(c.currValue) > tolerance )
+						if ( abs(c.currValue) > tolerance )
                         {
 							done = false;
 							c.resolveConstraint(test, posDiffs);
@@ -437,29 +435,28 @@ public:
 							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
                             if ( timeStep > 0.0 )
                             {
-								if (posDiffs(0) > 0.0)
-									int debug = 0;
-                                rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * (posDiffs(0) * 2) ) / timeStep );
+                                //double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
+                                //rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
+                                rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * 1.6 ) ) / timeStep );
                             }
 						}
                     }
-
 				}
 
-				else if ( c.constraintType == ATTACHMENT) {
-					VectorXd test(c.particleIndices.size());
+				if ( c.constraintType == ATTACHMENT)
+                {
+					VectorXd CurrentParticlePositions(c.particleIndices.size());
 					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++){
-							 test(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
+							 CurrentParticlePositions(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
 					}
-					c.updateValueGradient(test);//cant do else since c isnt used next time :(
+					c.updateValueGradient(CurrentParticlePositions);//cant do else since c isnt used next time :(
 					if ( abs(c.currValue) > tolerance ) // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
                     {
 						done = false;
-						c.resolveConstraint(test, posDiffs);
-						test += posDiffs;
+						c.resolveConstraint(CurrentParticlePositions, posDiffs);
 						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
                         {
-							rawX[(c.particleIndices[ParticleIndex])] = test(ParticleIndex);
+							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 )
                             {
                                 rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep );
@@ -469,20 +466,44 @@ public:
 					}
 				}
 
-                if  ( c.constraintType == RIGIDITY || c.constraintType == COLLISION )
+                if  ( c.constraintType == RIGIDITY )
                 {
-                    VectorXd posDiffs;
                     VectorXd AllParticles(6);
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
-                    c.resolveConstraint( AllParticles, posDiffs );
-
-                    for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+                    c.updateValueGradient( AllParticles );
+                    if ( abs(c.currValue) > tolerance )
                     {
-                        rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
-                        if ( timeStep > 0.0 )
+                        done = false;
+                        c.resolveConstraint( AllParticles, posDiffs );
+                        for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
                         {
-                            rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep );
+                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+                            if ( timeStep > 0.0 )
+                            {
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep );
+                            }
+                        }
+                    }
+                }
+
+                if ( c.constraintType == COLLISION )
+                {
+                    VectorXd AllParticles(6);
+                    AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
+                                    rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
+                    c.updateValueGradient( AllParticles );
+                    if ( abs(c.currValue) > tolerance )
+                    {
+                        done = false;
+                        c.resolveConstraint( AllParticles, posDiffs );
+                        for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+                        {
+                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+                            if ( timeStep > 0.0 )
+                            {
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep );
+                            }
                         }
                     }
                 }
@@ -492,6 +513,7 @@ public:
 
         fullConstraints.clear();
         collConstraints.clear();
+        barrierConstraints.clear();
         rigidityConstraints.clear();
 
         //4. updating velocities to match positions (the position-based step)
