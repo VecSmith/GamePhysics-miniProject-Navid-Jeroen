@@ -130,10 +130,27 @@ public:
         if (isFixed)
             return;
 
+	
+
 		RowVector3d GravityEffect = RowVector3d( 0, ( -GravityAcceleration * timeStep), 0 );
 		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
+
+			/*RowVector3d J = currImpulses.row(rowCounter);//posDiffs(0) * CRCoeff;
+			if (!J.isZero()) {
+				RowVector3d v = currVel.row(rowCounter);
+				double result = J.dot(v);
+				double lambda = -result / (J * invMasses(rowCounter)*J.transpose());
+				RowVector3d temp = invMasses(rowCounter) * J.transpose() * lambda;
+
+				result = J.dot(v + temp);
+				currVel.row(rowCounter) += temp ;
+				int debug = 0;
+			}*/
+
+			//currImpulses.row(rowCounter) += GravityEffect / invMasses(rowCounter); //alternative way with impulses instead of directly
 			currVel.row(rowCounter) += GravityEffect;
+
 			//impulse = F * timestep
 			// F = m * a
 			// v+ = v- + a*timestep
@@ -146,7 +163,25 @@ public:
 
         for (int ImpulseCounter = 0; ImpulseCounter <  currImpulses.rows(); ImpulseCounter++)
         {
-            currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);
+			if (!currImpulses.row(ImpulseCounter).isZero()) {
+			/*	RowVector3d F = currImpulses.row(ImpulseCounter) / timeStep;
+				RowVector3d a = F * invMasses(ImpulseCounter);
+				RowVector3d dV = a * timeStep;
+				cout << "before imp" << currVel.row(ImpulseCounter) << endl;
+				cout << "F" << F << endl;
+				cout << "a" << a << endl;
+				cout << "dV" << dV << endl;
+				RowVector3d impulse = currImpulses.row(ImpulseCounter) / invMasses(ImpulseCounter);
+
+				cout << "CRCoeff * posDiff / timeStep / invMass" << impulse;
+				dV = impulse / timeStep * invMasses(ImpulseCounter) * timeStep;
+				cout << "dV" << dV;*/
+				
+				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);// / invMasses(ImpulseCounter);
+				
+				cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
+			}
+	
         }
 
         currImpulses.setZero();
@@ -162,7 +197,10 @@ public:
 
 		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
+	//		cout << "before imp" << currX.row(rowCounter) << endl;
 			currX.row(rowCounter) += currVel.row(rowCounter) * timeStep;
+	//		cout << "ater imp" << currX.row(rowCounter) << endl;
+	//		cout << "imp" << currVel.row(rowCounter) << endl;
 		}
 
         igl::per_vertex_normals(currX, T, currNormals);
@@ -427,7 +465,7 @@ public:
 						int indices = (c.particleIndices[ParticleIndex]) + 1;
 						VectorXd test(1); test << rawX[indices];
 						c.updateValueGradient(test);
-						if ( abs(c.currValue) > tolerance )
+						if ( c.currValue <= -tolerance )
                         {
 							done = false;
 							c.resolveConstraint(test, posDiffs);
@@ -435,10 +473,45 @@ public:
 							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
                             if ( timeStep > 0.0 )
                             {
-                                //double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
-                                //rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-                                rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * 1.6 ) ) / timeStep );
+                             //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
+                              //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
+							   rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff *  posDiffs(0) ) / timeStep );
+								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
+
+								rawImpulses(indices) = a * 1;
+								if (impulse == -1 || impulse == 0) {
+									impulse = a;
+								}
+
+                               
+
+
+								if (impulse > 0) {
+
+									int tempOffset = 0;
+									int tempOffset2 = 0;
+									// find the mesh where this particle belongs too
+									for (int i = 0; i < meshes.size(); i++) {
+										tempOffset2 = meshes[i].rawOffset;
+										if (tempOffset2 <= indices) {
+											if (tempOffset2 > indices) {
+												break;
+											}
+											else {
+												tempOffset = i;
+											}
+										}
+
+									}
+									// update all particles of this mesh
+									for (int i = 0; i < meshes[tempOffset].currX.rows(); i++) {
+										rawImpulses(meshes[tempOffset].rawOffset + i * 3 + 1) += impulse;
+									}
+								}*/
                             }
+
+							
+
 						}
                     }
 				}
@@ -466,7 +539,7 @@ public:
 					}
 				}
 
-                if  ( c.constraintType == RIGIDITY )
+				if  ( c.constraintType == RIGIDITY )
                 {
                     VectorXd AllParticles(6);
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],

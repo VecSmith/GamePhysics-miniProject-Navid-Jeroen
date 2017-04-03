@@ -64,17 +64,35 @@ public:
 
             case RIGIDITY:
             {
-                double DeltaX = currPos(0) - currPos(3);
+               double DeltaX = currPos(0) - currPos(3);
                 double DeltaY = currPos(1) - currPos(4);
                 double DeltaZ = currPos(2) - currPos(5);
                 double EdgeLength = sqrt( ( DeltaX * DeltaX ) + ( DeltaY * DeltaY ) + ( DeltaZ * DeltaZ ) );
+
+				currValue = EdgeLength - refValue;
+
+				currGradient(0) = DeltaX/EdgeLength;
+				currGradient(1) = DeltaY/EdgeLength;
+				currGradient(2) = DeltaZ/EdgeLength;
+				currGradient(3) = -DeltaX/EdgeLength;
+				currGradient(4) = -DeltaY/EdgeLength;
+				currGradient(5) = -DeltaZ/EdgeLength;
+
+			/*	RowVector3d ParticleCenter1 = RowVector3d(currPos(0), currPos(1), currPos(2));
+				RowVector3d ParticleCenter2 = RowVector3d(currPos(3), currPos(4), currPos(5));
+				double EdgeLength = (ParticleCenter1 - ParticleCenter2).norm();
                 currValue = EdgeLength - refValue;
-                currGradient(0) = DeltaX/EdgeLength;
-                currGradient(1) = DeltaY/EdgeLength;
-                currGradient(2) = DeltaZ/EdgeLength;
-                currGradient(3) = -DeltaX/EdgeLength;
-                currGradient(4) = -DeltaY/EdgeLength;
-                currGradient(5) = -DeltaZ/EdgeLength;
+
+				RowVector3d normal = (ParticleCenter1 - ParticleCenter2) / EdgeLength;
+				RowVector3d gradient1 = normal;
+				RowVector3d gradient2 = -normal;
+				currGradient(0) = gradient1(0);
+				currGradient(1) = gradient1(1);
+				currGradient(2) = gradient1(2);
+				currGradient(3) = gradient2(0);
+				currGradient(4) = gradient2(1);
+				currGradient(5) = gradient2(2);*/
+
                 break;
             }
 
@@ -99,6 +117,7 @@ public:
             {
                 currValue = currPos(0) - refValue;
                 currGradient(0) = 1.0;
+				int debug = 0;
                 break;
             }
         }
@@ -120,6 +139,30 @@ public:
 			return;
 		}
 
+/*		if (constraintType == RIGIDITY) {
+			RowVector3d gradient1;// = normal;
+			RowVector3d gradient2;// = -normal;
+			gradient1(0) = currGradient(0);
+			gradient1(1) = currGradient(1);
+			gradient1(2) = currGradient(2);
+			gradient2(0) = currGradient(3);
+			gradient2(1) = currGradient(4);
+			gradient2(2) = currGradient(5);
+			double w1 = invMassMatrix.row(0)[0];
+			double w2 = invMassMatrix.row(3)[3];
+			RowVector3d posDiff1 = w1/(w1+w2) * currValue * gradient2;
+			RowVector3d posDiff2 = w2 / (w1 + w2) * currValue * gradient1;
+
+			//posDiffs<< posDiff1, posDiff2;
+			posDiffs(0) = posDiff1(0);
+			posDiffs(1) = posDiff1(1);
+			posDiffs(2) = posDiff1(2);
+			posDiffs(3) = posDiff2(0);
+			posDiffs(4) = posDiff2(1);
+			posDiffs(5) = posDiff2(2);
+			return;
+		}*/
+
         //compute posDiffs so that C(currPos+posDiffs) ~= C(currPos)+grad(C)*posdiffs=0, using the lagrange multiplier s.t.
         //Lagrange multiplier lambda holds posdiffs=lambda*invMassMatrix*grad(C) as taught in class
         //don't forget to call updateValueGradient() to get the most update values
@@ -131,6 +174,13 @@ public:
         
 		double lambda = -currValue / (currGradient.transpose() * invMassMatrix * currGradient);
 		posDiffs = lambda * invMassMatrix * currGradient;
+
+		/*for (int i = 0; i < particleIndices.size(); i++) {
+			double result = currValue + currGradient(i)*posDiffs(i); // = 0
+			updateValueGradient(currPos + posDiffs);
+ 			assert(result > -0.001 && result < 0.001);
+			assert(currValue > -0.001 && currValue < 0.001);
+		}*/
 
     }
 };
