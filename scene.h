@@ -522,7 +522,7 @@ public:
 							 CurrentParticlePositions(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
 					}
 					c.updateValueGradient(CurrentParticlePositions);//cant do else since c isnt used next time :(
-					if ( abs(c.currValue) > 0 ) // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
+					if ( abs(c.currValue) > tolerance ) // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
                     {
 						done = false;
 						c.resolveConstraint(CurrentParticlePositions, posDiffs);
@@ -544,7 +544,7 @@ public:
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.updateValueGradient( AllParticles );
-                    if ( abs(c.currValue) > 0 )
+                    if ( abs(c.currValue) > tolerance)
                     {
                         done = false;
                         c.resolveConstraint( AllParticles, posDiffs );
@@ -565,7 +565,7 @@ public:
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.updateValueGradient( AllParticles );
-                    if ( abs(c.currValue) > 0 )
+                    if ( abs(c.currValue) > tolerance)
                     {
                         done = false;
                         c.resolveConstraint( AllParticles, posDiffs );

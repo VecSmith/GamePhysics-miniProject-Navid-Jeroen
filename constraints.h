@@ -91,6 +91,7 @@ public:
                 currGradient(3) = -ConnectorVector(0);
                 currGradient(4) = -ConnectorVector(1);
                 currGradient(5) = -ConnectorVector(2);
+
                 break;
             }
 
