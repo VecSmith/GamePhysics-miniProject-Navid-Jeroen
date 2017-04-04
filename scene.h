@@ -182,7 +182,7 @@ public:
 
 				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);// / invMasses(ImpulseCounter);
 
-				cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
+				//cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
 			}
 
         }
@@ -418,28 +418,28 @@ public:
             //NOTE RIGIDITY, inter-mesh constraints
             if ( !Object.isFixed )
             {
-                rigidityConstraints.insert( rigidityConstraints.end(), Object.meshConstraints.begin(), Object.meshConstraints.end() );                
-            }
+                rigidityConstraints.insert( rigidityConstraints.end(), Object.meshConstraints.begin(), Object.meshConstraints.end() );
 
-            //NOTE BARRIER, loop through the objects particles
-            for ( int ParticleCounter = 0; ParticleCounter < Object.currX.rows() ; ParticleCounter++ )
-            {
-
-				RowVector3d ParticlePosition = Object.currX.row(ParticleCounter);
-				double ParticleRadius = Object.radii(ParticleCounter);
-
-                VectorXi particleIndices(1); particleIndices << Object.rawOffset + (ParticleCounter * 3);
-				VectorXd rawInvMasses(1); rawInvMasses << Object.invMasses(ParticleCounter);
-                VectorXd rawRadii(1); rawRadii << ParticleRadius;
-
-                bool XLimitation = abs(ParticlePosition[0]) - ParticleRadius < (platWidth / 2);
-                bool ZLimitation = abs(ParticlePosition[2]) - ParticleRadius < (platWidth / 2);
-
-                //NOTE check whether object need the barrier constraint or not
-                if ( XLimitation && ZLimitation )
+                //NOTE BARRIER, loop through the objects particles
+                for ( int ParticleCounter = 0; ParticleCounter < Object.currX.rows() ; ParticleCounter++ )
                 {
-                    Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
-                    fullConstraints.push_back(platformBarrier);
+
+    				RowVector3d ParticlePosition = Object.currX.row(ParticleCounter);
+    				double ParticleRadius = Object.radii(ParticleCounter);
+
+                    VectorXi particleIndices(1); particleIndices << Object.rawOffset + (ParticleCounter * 3);
+    				VectorXd rawInvMasses(1); rawInvMasses << Object.invMasses(ParticleCounter);
+                    VectorXd rawRadii(1); rawRadii << ParticleRadius;
+
+                    bool XLimitation = abs(ParticlePosition[0]) - ParticleRadius < (platWidth / 2);
+                    bool ZLimitation = abs(ParticlePosition[2]) - ParticleRadius < (platWidth / 2);
+
+                    //NOTE check whether object need the barrier constraint or not
+                    if ( XLimitation && ZLimitation )
+                    {
+                        Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
+                        fullConstraints.push_back(platformBarrier);
+                    }
                 }
             }
         }
@@ -475,7 +475,6 @@ public:
 
 						if ( c.currValue < tolerance )
                         {
-							int something = 0;
 							c.resolveConstraint(test, posDiffs);
 							test += posDiffs;
                             done = false;
