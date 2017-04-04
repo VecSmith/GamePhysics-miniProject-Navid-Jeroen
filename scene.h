@@ -114,11 +114,14 @@ public:
                 //cout<<"collision between particle at "<<currX.row(i)<<" with radius "<<radii(i)<<" and particle at "<<m.currX.row(j)<<" with radius "<<m.radii(j)<<endl;
 
                 //naive constraint
-                VectorXi particleIndices(6); particleIndices<<rawOffset+3*i, rawOffset+3*i+1, rawOffset+3*i+2, m.rawOffset+3*j, m.rawOffset+3*j+1, m.rawOffset+3*j+2;
-                VectorXd rawInvMasses(6); rawInvMasses<<invMasses(i), invMasses(i),invMasses(i),m.invMasses(j),m.invMasses(j),m.invMasses(j);
-                VectorXd rawRadii(6); rawRadii <<radii(i), radii(i), radii(i), m.radii(j), m.radii(j), m.radii(j);
-                Constraint c(COLLISION,  particleIndices, rawRadii,rawInvMasses, 0.0, 1.0);
-                collConstraints.push_back(c);
+                if ( !isFixed || !m.isFixed )
+                {
+                    VectorXi particleIndices(6); particleIndices<<rawOffset+3*i, rawOffset+3*i+1, rawOffset+3*i+2, m.rawOffset+3*j, m.rawOffset+3*j+1, m.rawOffset+3*j+2;
+                    VectorXd rawInvMasses(6); rawInvMasses<<invMasses(i), invMasses(i),invMasses(i),m.invMasses(j),m.invMasses(j),m.invMasses(j);
+                    VectorXd rawRadii(6); rawRadii <<radii(i), radii(i), radii(i), m.radii(j), m.radii(j), m.radii(j);
+                    Constraint c(COLLISION,  particleIndices, rawRadii,rawInvMasses, 0.0, 1.0);
+                    collConstraints.push_back(c);
+                }
             }
         }
     }
@@ -301,7 +304,7 @@ public:
             v[2]=T(g,(EFi(i,1)+2)%3);
             v[3]=T(f,(EFi(i,0)+2)%3);
             for (int j=0;j<4;j++){
-                for (int k=j+1;k<4;k++){
+                for (int k=j+1;k<4 && !isFixed;k++){
                     VectorXi particleIndices(6); particleIndices << 3*v[j], 3*v[j]+1, 3*v[j]+2, 3*v[k], 3*v[k]+1, 3*v[k]+2;
                     particleIndices.array()+=rawOffset;
                     VectorXd rawRadii(6); rawRadii << radii(v[j]), radii(v[j]), radii(v[j]), radii(v[k]), radii(v[k]), radii(v[k]);
@@ -413,7 +416,10 @@ public:
             Mesh Object = meshes[MeshCounter];
 
             //NOTE RIGIDITY, inter-mesh constraints
-            rigidityConstraints.insert( rigidityConstraints.end(), Object.meshConstraints.begin(), Object.meshConstraints.end() );
+            if ( !Object.isFixed )
+            {
+                rigidityConstraints.insert( rigidityConstraints.end(), Object.meshConstraints.begin(), Object.meshConstraints.end() );                
+            }
 
             //NOTE BARRIER, loop through the objects particles
             for ( int ParticleCounter = 0; ParticleCounter < Object.currX.rows() ; ParticleCounter++ )
@@ -469,6 +475,7 @@ public:
 
 						if ( c.currValue < tolerance )
                         {
+							int something = 0;
 							c.resolveConstraint(test, posDiffs);
 							test += posDiffs;
                             done = false;

@@ -131,12 +131,6 @@ public:
             return;
         }
 
-		if (constraintType == RIGIDITY && abs(currValue) < 0.000001)
-		{
-			posDiffs = VectorXd::Zero(particleIndices.size());
-			return;
-		}
-
 /*		if (constraintType == RIGIDITY) {
 			RowVector3d gradient1;// = normal;
 			RowVector3d gradient2;// = -normal;
