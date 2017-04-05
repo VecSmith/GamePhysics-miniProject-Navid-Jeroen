@@ -64,19 +64,6 @@ public:
 
             case RIGIDITY:
             {
-               double DeltaX = currPos(0) - currPos(3);
-                double DeltaY = currPos(1) - currPos(4);
-                double DeltaZ = currPos(2) - currPos(5);
-                double EdgeLength = sqrt( ( DeltaX * DeltaX ) + ( DeltaY * DeltaY ) + ( DeltaZ * DeltaZ ) );
-
-				currValue = EdgeLength - refValue;
-
-				currGradient(0) = DeltaX/EdgeLength;
-				currGradient(1) = DeltaY/EdgeLength;
-				currGradient(2) = DeltaZ/EdgeLength;
-				currGradient(3) = -DeltaX/EdgeLength;
-				currGradient(4) = -DeltaY/EdgeLength;
-				currGradient(5) = -DeltaZ/EdgeLength;
 
 			/*	RowVector3d ParticleCenter1 = RowVector3d(currPos(0), currPos(1), currPos(2));
 				RowVector3d ParticleCenter2 = RowVector3d(currPos(3), currPos(4), currPos(5));
@@ -93,6 +80,18 @@ public:
 				currGradient(4) = gradient2(1);
 				currGradient(5) = gradient2(2);*/
 
+                RowVector3d ParticleCenter1 = RowVector3d( currPos(0), currPos(1), currPos(2) );
+                RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );
+                RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
+                currValue = ConnectorVector.norm() - refValue;
+                ConnectorVector = ConnectorVector.normalized();
+                currGradient(0) = ConnectorVector(0);
+                currGradient(1) = ConnectorVector(1);
+                currGradient(2) = ConnectorVector(2);
+                currGradient(3) = -ConnectorVector(0);
+                currGradient(4) = -ConnectorVector(1);
+                currGradient(5) = -ConnectorVector(2);
+
                 break;
             }
 
@@ -102,7 +101,6 @@ public:
                 RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );
                 RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
                 currValue = ConnectorVector.norm() - ( radii(0) + radii(3) );
-                currValue *= 2.0;
                 ConnectorVector = ConnectorVector.normalized();
                 currGradient(0) = -ConnectorVector(0) * currValue;
                 currGradient(1) = -ConnectorVector(1) * currValue;
@@ -132,12 +130,6 @@ public:
             posDiffs=VectorXd::Zero(particleIndices.size());
             return;
         }
-
-		if (constraintType == RIGIDITY && abs(currValue) < 0.00001)
-		{
-			posDiffs = VectorXd::Zero(particleIndices.size());
-			return;
-		}
 
 /*		if (constraintType == RIGIDITY) {
 			RowVector3d gradient1;// = normal;
@@ -171,7 +163,7 @@ public:
 		// lambda = -C(currPos) / (gradient(C)^transposed * inverseMass * gradient(C))
 		// I think C(currPos) equals currValue after an  updateValueGradient(currPos); call so than
 		//currValue + lambda * currGradient.transpose() * invMassMatrix * currGradient;
-        
+
 		double lambda = -currValue / (currGradient.transpose() * invMassMatrix * currGradient);
 		posDiffs = lambda * invMassMatrix * currGradient;
 
