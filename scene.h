@@ -581,7 +581,7 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 )
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep  );
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff )* posDiffs(ParticleIndex) ) / timeStep ;
                             }
                         }
                     }
