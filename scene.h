@@ -97,13 +97,15 @@ public:
 
 
     //this function creates all collision constraints between two particle meshes
-    void CreateCollisionConstraint(const Mesh& m, vector<Constraint>& collConstraints){
+	void CreateCollisionConstraint(const Mesh& m, vector<Constraint>& collConstraints) {
 
 
-        //collision between bounding boxes
-        if (!isBoxCollide(m))
-            return;
+		//collision between bounding boxes
+		if (!isBoxCollide(m))
+			return;
 
+		if (isFixed && m.isFixed)
+			return;
         //checking collision between every two particles
         //This assumes that prevX are not intersecting. That could potentially cause artifacts
         for (int i=0;i<currX.rows();i++){
@@ -114,7 +116,7 @@ public:
                 //cout<<"collision between particle at "<<currX.row(i)<<" with radius "<<radii(i)<<" and particle at "<<m.currX.row(j)<<" with radius "<<m.radii(j)<<endl;
 
                 //naive constraint
-                if ( !isFixed || !m.isFixed )
+               // if ( !isFixed || !m.isFixed )
                 {
                     VectorXi particleIndices(6); particleIndices<<rawOffset+3*i, rawOffset+3*i+1, rawOffset+3*i+2, m.rawOffset+3*j, m.rawOffset+3*j+1, m.rawOffset+3*j+2;
                     VectorXd rawInvMasses(6); rawInvMasses<<invMasses(i), invMasses(i),invMasses(i),m.invMasses(j),m.invMasses(j),m.invMasses(j);
@@ -419,7 +421,6 @@ public:
             if ( !Object.isFixed )
             {
                 rigidityConstraints.insert( rigidityConstraints.end(), Object.meshConstraints.begin(), Object.meshConstraints.end() );
-
                 //NOTE BARRIER, loop through the objects particles
                 for ( int ParticleCounter = 0; ParticleCounter < Object.currX.rows() ; ParticleCounter++ )
                 {
@@ -438,7 +439,7 @@ public:
                     if ( XLimitation && ZLimitation )
                     {
                         Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
-                        fullConstraints.push_back(platformBarrier);
+						barrierConstraints.push_back(platformBarrier);
                     }
                 }
             }
