@@ -184,7 +184,7 @@ public:
 
 				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);// / invMasses(ImpulseCounter);
 
-				//cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
+				cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
 			}
 
         }
@@ -216,10 +216,13 @@ public:
     void projectVelocities(double timeStep){
 
         //NOTE this method is called after constraints are resolved to update the new velocities. lecture 7 slide 6 the yellow thingy
+		MatrixXd currVel1 = currVel;
         for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
         {
-            currVel(rowCounter) = ( prevX(rowCounter) - currX(rowCounter) ) / timeStep;
+            currVel1(rowCounter) = (currX(rowCounter) -prevX(rowCounter) ) / timeStep;
         }
+		currVel = (currX - prevX) / timeStep;
+		cout << "new" << currVel << endl << "old" << currVel1 << endl;
 
         prevX=currX;
     }
@@ -472,11 +475,13 @@ public:
                     {
 						int indices = (c.particleIndices[ParticleIndex]) + 1;
 						VectorXd test(1); test << rawX[indices];
-						c.updateValueGradient(test);
 
-						if ( c.currValue < tolerance )
+						c.resolveConstraint(test, posDiffs);
+
+						// norm should always be positive
+						if ( posDiffs.norm() > tolerance )
                         {
-							c.resolveConstraint(test, posDiffs);
+
 							test += posDiffs;
                             done = false;
                             rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
@@ -484,7 +489,7 @@ public:
                             {
                              //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
                               //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( ( CRCoeff  ) * posDiffs(0) ) / timeStep );
+                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep );
 
 								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
 								rawImpulses(indices) = a * 1;
@@ -558,7 +563,7 @@ public:
                         for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
                         {
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
-                            if ( timeStep > 0.0 )
+                            if ( timeStep > 0.0 && iteration > 0 )
                             {
                                 rawImpulses[(c.particleIndices[ParticleIndex])] += ( (CRCoeff) * posDiffs(ParticleIndex) / timeStep );
                             }
