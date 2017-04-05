@@ -216,13 +216,13 @@ public:
     void projectVelocities(double timeStep){
 
         //NOTE this method is called after constraints are resolved to update the new velocities. lecture 7 slide 6 the yellow thingy
-		MatrixXd currVel1 = currVel;
+		/*MatrixXd currVel1 = currVel;
         for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
         {
             currVel1(rowCounter) = (currX(rowCounter) -prevX(rowCounter) ) / timeStep;
-        }
+        }*/
 		currVel = (currX - prevX) / timeStep;
-		cout << "new" << currVel << endl << "old" << currVel1 << endl;
+		//cout << "new" << currVel << endl << "old" << currVel1 << endl;
 
         prevX=currX;
     }
