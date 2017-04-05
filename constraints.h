@@ -101,7 +101,7 @@ public:
                 RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );
                 RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
                 currValue = ConnectorVector.norm() - ( radii(0) + radii(3) );
-                ConnectorVector = ConnectorVector.normalized() / 2;
+                ConnectorVector = ConnectorVector.normalized();
                 currGradient(0) = -ConnectorVector(0) * currValue;
                 currGradient(1) = -ConnectorVector(1) * currValue;
                 currGradient(2) = -ConnectorVector(2) * currValue;

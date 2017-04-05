@@ -484,7 +484,7 @@ public:
                             {
                              //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
                               //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( ( CRCoeff + 0.4 ) * posDiffs(0) ) / timeStep );
+                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( ( CRCoeff  ) * posDiffs(0) ) / timeStep );
 
 								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
 								rawImpulses(indices) = a * 1;
@@ -578,10 +578,10 @@ public:
                         c.resolveConstraint( AllParticles, posDiffs );
                         for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
                         {
-                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex) / 2;
                             if ( timeStep > 0.0 )
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff )* posDiffs(ParticleIndex) ) / timeStep ;
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff / 2 ) * posDiffs(ParticleIndex) ) / timeStep ;
                             }
                         }
                     }
