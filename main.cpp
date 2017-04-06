@@ -17,6 +17,7 @@ MatrixXi platT;
 VectorXi attachM1, attachM2, attachV1, attachV2;
 double platWidth=100.0;
 double platHeight=10.0;
+double RigidityAllowance = 0.0;
 
 Scene scene;
 
@@ -141,6 +142,12 @@ int main(int argc, char *argv[])
             timeStep=val;
         },[&]() {
             return timeStep;
+        });
+
+        viewer.ngui->addVariable<double>("Rigidity Range",[&](double val_0) {
+            RigidityAllowance=val_0;
+        },[&]() {
+            return RigidityAllowance;
         });
 
         // call to generate menu

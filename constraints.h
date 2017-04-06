@@ -14,6 +14,8 @@
 using namespace Eigen;
 using namespace std;
 
+extern double RigidityAllowance;
+
 //constraint types
 typedef enum ConstraintType{ATTACHMENT, RIGIDITY, COLLISION, BARRIER} ConstraintType;
 

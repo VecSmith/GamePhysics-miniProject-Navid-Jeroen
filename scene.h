@@ -18,6 +18,8 @@ using namespace std;
 #define PI 3.14159265358979323846264338327950
 #define GravityAcceleration 9.80665
 
+extern double RigidityAllowance;
+
 void ConstructEFi(const MatrixXi& FE, const MatrixXi& EF, MatrixXi& EFi, MatrixXd& FESigns)
 {
 
@@ -184,7 +186,7 @@ public:
 
 				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);// / invMasses(ImpulseCounter);
 
-				cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
+				//cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
 			}
 
         }
@@ -556,7 +558,7 @@ public:
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.updateValueGradient( AllParticles );
-                    if ( abs(c.currValue) > tolerance)
+                    if ( abs(c.currValue) > tolerance + (  RigidityAllowance / c.refValue ) )
                     {
                         done = false;
                         c.resolveConstraint( AllParticles, posDiffs );
