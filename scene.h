@@ -558,7 +558,7 @@ public:
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.updateValueGradient( AllParticles );
-                    if ( abs(c.currValue) > tolerance + (  RigidityAllowance / c.refValue ) )
+                    if ( abs(c.currValue) > tolerance + ( RigidityAllowance / c.refValue ) )
                     {
                         done = false;
                         c.resolveConstraint( AllParticles, posDiffs );
