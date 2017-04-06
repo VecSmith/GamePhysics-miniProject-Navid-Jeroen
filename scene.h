@@ -677,11 +677,6 @@ public:
 			RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
 			RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
 			VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
-
-			cout << "a:" << i << endl;
-			cout << particleIndices << endl;
-			cout << pos1 << endl;
-			cout << pos2 << endl;
 			
 			double edgeLength = (pos1 - pos2).norm();
 
