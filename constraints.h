@@ -57,30 +57,23 @@ public:
         switch (constraintType){
 
             case ATTACHMENT:{
-                //use this as an example on how to fill these fields
-                currValue=(currPos(0)-currPos(1))-refValue;
-                currGradient(0)=1.0;
-                currGradient(1)=-1.0;
+				RowVector3d ParticleCenter1 = RowVector3d(currPos(0), currPos(1), currPos(2));
+				RowVector3d ParticleCenter2 = RowVector3d(currPos(3), currPos(4), currPos(5));
+				RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
+				currValue = ConnectorVector.norm() - refValue - (RigidityAllowance / refValue);
+				ConnectorVector = ConnectorVector.normalized();
+				currGradient(0) = ConnectorVector(0);
+				currGradient(1) = ConnectorVector(1);
+				currGradient(2) = ConnectorVector(2);
+				currGradient(3) = -ConnectorVector(0);
+				currGradient(4) = -ConnectorVector(1);
+				currGradient(5) = -ConnectorVector(2);
+
                 break;
             }
 
             case RIGIDITY:
             {
-
-			/*	RowVector3d ParticleCenter1 = RowVector3d(currPos(0), currPos(1), currPos(2));
-				RowVector3d ParticleCenter2 = RowVector3d(currPos(3), currPos(4), currPos(5));
-				double EdgeLength = (ParticleCenter1 - ParticleCenter2).norm();
-                currValue = EdgeLength - refValue;
-
-				RowVector3d normal = (ParticleCenter1 - ParticleCenter2) / EdgeLength;
-				RowVector3d gradient1 = normal;
-				RowVector3d gradient2 = -normal;
-				currGradient(0) = gradient1(0);
-				currGradient(1) = gradient1(1);
-				currGradient(2) = gradient1(2);
-				currGradient(3) = gradient2(0);
-				currGradient(4) = gradient2(1);
-				currGradient(5) = gradient2(2);*/
 
                 RowVector3d ParticleCenter1 = RowVector3d( currPos(0), currPos(1), currPos(2) );
                 RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );

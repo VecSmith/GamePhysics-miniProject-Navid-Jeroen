@@ -531,24 +531,22 @@ public:
 
 				if ( c.constraintType == ATTACHMENT)
                 {
-					VectorXd CurrentParticlePositions(c.particleIndices.size());
-					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++){
-							 CurrentParticlePositions(ParticleIndex) =  rawX[(c.particleIndices[ParticleIndex])];
-					}
-					c.updateValueGradient(CurrentParticlePositions);//cant do else since c isnt used next time :(
-					if ( abs(c.currValue) > tolerance ) // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
-                    {
+					VectorXd AllParticles(6);
+					AllParticles << rawX[(c.particleIndices[0])], rawX[(c.particleIndices[1])], rawX[(c.particleIndices[2])],
+						rawX[(c.particleIndices[3])], rawX[(c.particleIndices[4])], rawX[(c.particleIndices[5])];
+					c.updateValueGradient(AllParticles);
+					if (abs(c.currValue) > tolerance + (RigidityAllowance / c.refValue))
+					{
 						done = false;
-						c.resolveConstraint(CurrentParticlePositions, posDiffs);
+						c.resolveConstraint(AllParticles, posDiffs);
 						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
-                        {
+						{
 							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
-                            if ( timeStep > 0.0 && ( ParticleIndex > 2 ) && posDiffs(ParticleIndex) > tolerance )
-                            {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff * posDiffs(ParticleIndex) ) / timeStep  );
-                            }
+							if (timeStep > 0.0 && iteration > 0)
+							{
+								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep);
+							}
 						}
-
 					}
 				}
 
@@ -689,7 +687,7 @@ public:
 
 			cout << edgeLength << endl;
 
-			interMeshConstraints.push_back(Constraint(RIGIDITY, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
+			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
         }
 
         return true;
