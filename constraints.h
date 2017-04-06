@@ -167,7 +167,7 @@ public:
 		//currValue + lambda * currGradient.transpose() * invMassMatrix * currGradient;
 
 		double lambda = -currValue / (currGradient.transpose() * invMassMatrix * currGradient);
-		posDiffs = lambda * invMassMatrix * currGradient;
+		posDiffs = lambda * invMassMatrix * currGradient * stiffness;
 
 		/*for (int i = 0; i < particleIndices.size(); i++) {
 			double result = currValue + currGradient(i)*posDiffs(i); // = 0

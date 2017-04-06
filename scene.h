@@ -487,7 +487,7 @@ public:
 							test += posDiffs;
                             done = false;
                             rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
-                            if ( timeStep > 0.0 )
+                            if ( timeStep > 0.0 && iteration > 0)
                             {
                              //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
                               //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
@@ -567,7 +567,7 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0 )
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( (CRCoeff) * posDiffs(ParticleIndex) / timeStep );
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep );
                             }
                         }
                     }
@@ -585,10 +585,10 @@ public:
                         c.resolveConstraint( AllParticles, posDiffs );
                         for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
                         {
-                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex) / 2;
-                            if ( timeStep > 0.0 )
+                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+                            if ( timeStep > 0.0 && iteration > 0)
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff / 2 ) * posDiffs(ParticleIndex) ) / timeStep ;
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff ) * posDiffs(ParticleIndex) ) / timeStep ;
                             }
                         }
                     }
@@ -660,17 +660,36 @@ public:
         for (int i=0;i<numofConstraints;i++){
             sceneFileHandle>>attachM1(i)>>attachV1(i)>>attachM2(i)>>attachV2(i);
 
-            for (int j=0;j<3;j++){
+/*            for (int j=0;j<3;j++){
                 VectorXi particleIndices(2); particleIndices<<meshes[attachM1(i)].rawOffset+3*attachV1(i)+j,meshes[attachM2(i)].rawOffset+3*attachV2(i)+j;
                 VectorXd rawRadii(2); rawRadii<<meshes[attachM1(i)].radii(attachV1(i)), meshes[attachM2(i)].radii(attachV2(i));
                 VectorXd rawInvMasses(2); rawInvMasses<<meshes[attachM1(i)].invMasses(attachV1(i)), meshes[attachM2(i)].invMasses(attachV2(i));
                 double refValue=meshes[attachM1(i)].currX(attachV1(i),j)-meshes[attachM2(i)].currX(attachV2(i),j);
                 interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
 
-            }
+            }*/
+			double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
+			double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
+			VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
+			double radii1 = meshes[attachM1(i)].radii(attachV1(i));
+			double radii2 = meshes[attachM2(i)].radii(attachV2(i));
+			VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
+			double invMass1 = meshes[attachM1(i)].invMasses(attachV1(i));
+			double invMass2 = meshes[attachM2(i)].invMasses(attachV2(i));
+			RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
+			RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
+			VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
 
+			cout << "a:" << i << endl;
+			cout << particleIndices << endl;
+			cout << pos1 << endl;
+			cout << pos2 << endl;
+			
+			double edgeLength = (pos1 - pos2).norm();
 
+			cout << edgeLength << endl;
 
+			interMeshConstraints.push_back(Constraint(RIGIDITY, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
         }
 
         return true;
