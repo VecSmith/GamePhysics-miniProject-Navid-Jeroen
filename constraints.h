@@ -17,7 +17,7 @@ using namespace std;
 extern double RigidityAllowance;
 
 //constraint types
-typedef enum ConstraintType{ATTACHMENT, RIGIDITY, COLLISION, BARRIER} ConstraintType;
+typedef enum ConstraintType{ATTACHMENT, RIGIDITY, COLLISION, BARRIER, SPRING} ConstraintType;
 
 class Constraint{
 public:
@@ -114,6 +114,26 @@ public:
 				int debug = 0;
                 break;
             }
+
+			case SPRING:
+			{
+				double length = (currPos(0) - currPos(1));
+				currValue = length - refValue; //length - initial length
+				// if currValue < 0 than the init and max length hasn't been reached
+				//		how about a min value?
+				// if currValue == 0 max length
+				// if currvalue > 0 bigger than max length so needs to be fixed
+				currGradient(0) = 1.0;
+				currGradient(1) = -1.0;
+
+				/// shouldnt be here
+				double K = stiffness;
+				double force = -K * currValue;
+				currGradient(0) = 1;
+				currGradient(1) = -1; // --K
+
+				break;
+			}
         }
     }
 
@@ -126,30 +146,9 @@ public:
             posDiffs=VectorXd::Zero(particleIndices.size());
             return;
         }
-
-/*		if (constraintType == RIGIDITY) {
-			RowVector3d gradient1;// = normal;
-			RowVector3d gradient2;// = -normal;
-			gradient1(0) = currGradient(0);
-			gradient1(1) = currGradient(1);
-			gradient1(2) = currGradient(2);
-			gradient2(0) = currGradient(3);
-			gradient2(1) = currGradient(4);
-			gradient2(2) = currGradient(5);
-			double w1 = invMassMatrix.row(0)[0];
-			double w2 = invMassMatrix.row(3)[3];
-			RowVector3d posDiff1 = w1/(w1+w2) * currValue * gradient2;
-			RowVector3d posDiff2 = w2 / (w1 + w2) * currValue * gradient1;
-
-			//posDiffs<< posDiff1, posDiff2;
-			posDiffs(0) = posDiff1(0);
-			posDiffs(1) = posDiff1(1);
-			posDiffs(2) = posDiff1(2);
-			posDiffs(3) = posDiff2(0);
-			posDiffs(4) = posDiff2(1);
-			posDiffs(5) = posDiff2(2);
+		if (currValue == 0.0) {
 			return;
-		}*/
+		}
 
         //compute posDiffs so that C(currPos+posDiffs) ~= C(currPos)+grad(C)*posdiffs=0, using the lagrange multiplier s.t.
         //Lagrange multiplier lambda holds posdiffs=lambda*invMassMatrix*grad(C) as taught in class

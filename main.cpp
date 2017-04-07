@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     // Load scene
     if (argc<2){
         cout<<"Please provide name of scene file!"<<endl;
-		argv[1] = "towersceneattached.txt";
+		argv[1] = "springBox.txt";
         //return 0;
     }
     cout<<"scene file: "<<std::string(argv[1])<<endl;
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     //create platform
     createPlatform(100.0, 10.0);
 
-    scene.loadScene(std::string(DATA_PATH), std::string(argv[1]),platWidth, platHeight, attachM1, attachV1, attachM2, attachV2);
+	scene.loadScene(std::string(DATA_PATH), std::string(argv[1]), platWidth, platHeight, attachM1, attachV1, attachM2, attachV2);
 
     //scene.addMesh(platV, platF, 10000.0, true, platCOM, platOrientation);*/
     scene.updateScene(0.0, CRCoeff, X,T, tolerance,maxConstraintIterations, platX, platT);
