@@ -184,6 +184,8 @@ public:
 				dV = impulse / timeStep * invMasses(ImpulseCounter) * timeStep;
 				cout << "dV" << dV;*/
 
+				cout << ImpulseCounter << ": " << currImpulses.row(ImpulseCounter) << endl;
+
 				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);// / invMasses(ImpulseCounter);
 
 				//cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
@@ -202,13 +204,14 @@ public:
 
 		//NOTE this is called after integrating velocities so it uses v(t+dt)
 
-		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
+		/*for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
 	//		cout << "before imp" << currX.row(rowCounter) << endl;
 			currX.row(rowCounter) += currVel.row(rowCounter) * timeStep;
 	//		cout << "ater imp" << currX.row(rowCounter) << endl;
 	//		cout << "imp" << currVel.row(rowCounter) << endl;
-		}
+		}*/
+		currX += currVel * timeStep;
 
         igl::per_vertex_normals(currX, T, currNormals);
     }
@@ -339,6 +342,9 @@ public:
     VectorXd rawVel;
     VectorXd rawImpulses;
     MatrixXi T;
+
+	MatrixXi particleModelT;
+	MatrixXd particleModelX;
 
     vector<Mesh> meshes;
     double platWidth, platHeight;  //used to create the platform constraint
@@ -491,7 +497,7 @@ public:
                             {
                              //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
                               //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep );
+                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep ); // * invMasses(ImpulseCounter);
 
 								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
 								rawImpulses(indices) = a * 1;
@@ -544,7 +550,7 @@ public:
 							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
 							if (timeStep > 0.0 && iteration > 0)
 							{
-								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep);
+								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep); // * invMasses(ImpulseCounter);
 							}
 						}
 					}
@@ -565,7 +571,7 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0 )
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep );
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ); // * invMasses(ImpulseCounter);
                             }
                         }
                     }
@@ -586,11 +592,33 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0)
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff ) * posDiffs(ParticleIndex) ) / timeStep ;
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff ) * posDiffs(ParticleIndex) ) / timeStep ; // * invMasses(ImpulseCounter);
                             }
                         }
                     }
                 }
+				if (c.constraintType == SPRING) {
+					VectorXd AllParticles(2);
+					AllParticles << rawX[(c.particleIndices[0])], rawX[(c.particleIndices[1])];
+					
+					c.resolveConstraint(AllParticles, posDiffs);
+					// norm should always be positive
+					if (posDiffs.norm() > tolerance)
+					{
+						done = false;
+						cout << AllParticles << endl;
+						cout << posDiffs << endl;
+						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+						{
+							// move when at wrong position
+							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+							if (timeStep > 0.0 && iteration > 0)
+							{
+								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex)) / timeStep; // * invMasses(ImpulseCounter);
+							}
+						}
+					}
+				}
 
 			}
 		}
@@ -658,7 +686,7 @@ public:
         for (int i=0;i<numofConstraints;i++){
             sceneFileHandle>>attachM1(i)>>attachV1(i)>>attachM2(i)>>attachV2(i);
 
-/*            for (int j=0;j<3;j++){
+			/*for (int j=0;j<3;j++){
                 VectorXi particleIndices(2); particleIndices<<meshes[attachM1(i)].rawOffset+3*attachV1(i)+j,meshes[attachM2(i)].rawOffset+3*attachV2(i)+j;
                 VectorXd rawRadii(2); rawRadii<<meshes[attachM1(i)].radii(attachV1(i)), meshes[attachM2(i)].radii(attachV2(i));
                 VectorXd rawInvMasses(2); rawInvMasses<<meshes[attachM1(i)].invMasses(attachV1(i)), meshes[attachM2(i)].invMasses(attachV2(i));
@@ -666,7 +694,14 @@ public:
                 interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
 
             }*/
-			double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
+			int j = 1;
+			VectorXi particleIndices(2); particleIndices << meshes[attachM1(i)].rawOffset + 3 * attachV1(i) + j, meshes[attachM2(i)].rawOffset + 3 * attachV2(i) + j;
+			VectorXd rawRadii(2); rawRadii << meshes[attachM1(i)].radii(attachV1(i)), meshes[attachM2(i)].radii(attachV2(i));
+			VectorXd rawInvMasses(2); rawInvMasses << meshes[attachM1(i)].invMasses(attachV1(i)), meshes[attachM2(i)].invMasses(attachV2(i));
+			double refValue = meshes[attachM1(i)].currX(attachV1(i), j) - meshes[attachM2(i)].currX(attachV2(i), j);
+			interMeshConstraints.push_back(Constraint(SPRING, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
+
+			/*double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
 			double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
 			VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
 			double radii1 = meshes[attachM1(i)].radii(attachV1(i));
@@ -680,11 +715,17 @@ public:
 			
 			double edgeLength = (pos1 - pos2).norm();
 
-			cout << edgeLength << endl;
 
-			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
+			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));*/
         }
 
+
+
+
+		// load particle model
+
+		igl::readOFF(dataFolder + std::string("/particle.off"), particleModelX, particleModelT);
+		// don't add the model yet
         return true;
     }
 
