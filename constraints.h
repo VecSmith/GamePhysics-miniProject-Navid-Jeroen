@@ -78,7 +78,8 @@ public:
                 RowVector3d ParticleCenter1 = RowVector3d( currPos(0), currPos(1), currPos(2) );
                 RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );
                 RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
-                currValue = ConnectorVector.norm() - refValue - ( RigidityAllowance / refValue );
+                double Range = ( RigidityAllowance != 0 ) ? ( refValue / RigidityAllowance ) : (0);
+                currValue = ConnectorVector.norm() - refValue - Range;
                 ConnectorVector = ConnectorVector.normalized();
                 currGradient(0) = ConnectorVector(0);
                 currGradient(1) = ConnectorVector(1);

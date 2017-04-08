@@ -201,7 +201,7 @@ public:
             return;  //a fixed object is immobile
 
 		//NOTE this is called after integrating velocities so it uses v(t+dt)
-
+        /*
 		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
 	//		cout << "before imp" << currX.row(rowCounter) << endl;
@@ -209,6 +209,8 @@ public:
 	//		cout << "ater imp" << currX.row(rowCounter) << endl;
 	//		cout << "imp" << currVel.row(rowCounter) << endl;
 		}
+        */
+		currX += currVel * timeStep;
 
         igl::per_vertex_normals(currX, T, currNormals);
     }
@@ -556,7 +558,8 @@ public:
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.updateValueGradient( AllParticles );
-                    if ( abs(c.currValue) > tolerance + ( RigidityAllowance / c.refValue ) )
+                    double Range = ( RigidityAllowance != 0 ) ? ( c.refValue / RigidityAllowance ) : (0);
+                    if ( abs(c.currValue) > tolerance + Range )
                     {
                         done = false;
                         c.resolveConstraint( AllParticles, posDiffs );
@@ -565,7 +568,7 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0 )
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep );
+                                //rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep );
                             }
                         }
                     }
@@ -677,7 +680,7 @@ public:
 			RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
 			RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
 			VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
-			
+
 			double edgeLength = (pos1 - pos2).norm();
 
 			cout << edgeLength << endl;
