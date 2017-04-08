@@ -11,6 +11,8 @@
 #include <igl/edge_topology.h>
 #include "volInt.h"
 
+#include "Spring.h"
+
 using namespace Eigen;
 using namespace std;
 
@@ -351,6 +353,8 @@ public:
 
     vector<Constraint> interMeshConstraints;   //constraints between meshes (mostly attachments read from the file
 
+	vector<Spring> springs; // sad but have to do it like this for now.
+
 
     //updates from global raw indices back into mesh current positions.
     void updateMeshValues(){
@@ -621,6 +625,12 @@ public:
 				}
 
 			}
+
+			for (Spring s : springs) {
+				double impulse = s.getImpulse(rawX, timeStep);
+				rawImpulses[s.getParticleIndice1()] = impulse;
+				rawImpulses[s.getParticleIndice2()] = -impulse;	
+			}
 		}
 
         fullConstraints.clear();
@@ -699,7 +709,10 @@ public:
 			VectorXd rawRadii(2); rawRadii << meshes[attachM1(i)].radii(attachV1(i)), meshes[attachM2(i)].radii(attachV2(i));
 			VectorXd rawInvMasses(2); rawInvMasses << meshes[attachM1(i)].invMasses(attachV1(i)), meshes[attachM2(i)].invMasses(attachV2(i));
 			double refValue = meshes[attachM1(i)].currX(attachV1(i), j) - meshes[attachM2(i)].currX(attachV2(i), j);
-			interMeshConstraints.push_back(Constraint(SPRING, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
+			//interMeshConstraints.push_back(Constraint(SPRING, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
+
+			double K = 2;
+			springs.push_back(Spring(meshes[attachM1(i)].rawOffset + 3 * attachV1(i) + j, meshes[attachM2(i)].rawOffset + 3 * attachV2(i) + j, refValue, K));
 
 			/*double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
 			double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
