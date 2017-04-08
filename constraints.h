@@ -17,7 +17,7 @@ using namespace std;
 extern double RigidityAllowance;
 
 //constraint types
-typedef enum ConstraintType{ATTACHMENT, RIGIDITY, COLLISION, BARRIER, SPRING} ConstraintType;
+typedef enum ConstraintType{ATTACHMENT, RIGIDITY, COLLISION, BARRIER, ATTACHMENTSTATIC} ConstraintType;
 
 class Constraint{
 public:
@@ -115,7 +115,7 @@ public:
                 break;
             }
 
-			case SPRING:
+			/*case SPRING:
 			{
 				double length = (currPos(0) - currPos(1));
 				currValue = length - refValue; //length - initial length
@@ -132,6 +132,15 @@ public:
 				currGradient(0) = 1;
 				currGradient(1) = -1; // --K
 
+				break;
+			}*/
+
+			case ATTACHMENTSTATIC:
+			{
+				//use this as an example on how to fill these fields
+				currValue = (currPos(0) - currPos(1)) - refValue;
+				currGradient(0) = 1.0;
+				currGradient(1) = -1.0;
 				break;
 			}
         }
