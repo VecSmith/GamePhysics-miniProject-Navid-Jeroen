@@ -188,12 +188,14 @@ public:
 
 				cout << ImpulseCounter << ": " << currImpulses.row(ImpulseCounter) << endl;
 
-				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);// / invMasses(ImpulseCounter);
+				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter) * invMasses(ImpulseCounter);
 
 				//cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
 			}
 
         }
+
+
 
         currImpulses.setZero();
     }
@@ -413,7 +415,42 @@ public:
         for (int i=0;i<meshes.size();i++)
             meshes[i].integrate(timeStep);
 
-        updateRawValues();
+		// first get the curVel to rawVel
+		updateRawValues();
+
+		// damp spring velocity from previous stuff before frame
+	/*	if (timeStep > 0) {
+			for (Spring s : springs) {
+				double impulse = s.dampSpringImpulse(rawVel, timeStep); //impulse but needs to be fixed before the frame is done so need to update velocity according to this impulse right now
+
+				//double F = impulse / timeStep;
+				//RowVector3d a = F * invMasses(ImpulseCounter);
+				//RowVector3d dV = a * timeStep;
+				
+				cout << "old1" << rawVel[s.getParticleIndice1()] << endl;
+				cout << "old2" << rawVel[s.getParticleIndice2()] << endl;
+				rawVel[s.getParticleIndice1()] += impulse / timeStep * s.invMass1 * timeStep; // can remove timeStep
+				rawVel[s.getParticleIndice2()] += impulse / timeStep * s.invMass2 * timeStep;
+				cout << "new1" << rawVel[s.getParticleIndice1()] << endl;
+				cout << "new2" << rawVel[s.getParticleIndice2()] << endl;
+			}
+		}
+		// move rawVel back to curVel
+		for (int i = 0; i < meshes.size(); i++) {
+			cout << "old currVel" << endl;
+			cout << meshes[i].currVel << endl;
+		}
+		updateMeshValues(); // need to update the meshValues so the dampening doesn't get removed
+		for (int i = 0; i < meshes.size(); i++) {
+			cout << "new currVel" << endl;
+			cout << meshes[i].currVel << endl;
+		}*/
+		// also need to update the position to wait first uhm idk
+		// cant use intergrate since that gravity gets added twice so
+		for (int i = 0; i < meshes.size(); i++) {
+			meshes[i].integratePosition(timeStep);
+		}
+
         //cout<<"raw positions: "<<rawV<<endl;
 
         vector<Constraint> fullConstraints;
@@ -501,7 +538,8 @@ public:
                             {
                              //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
                               //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep ); // * invMasses(ImpulseCounter);
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+								rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ((CRCoeff  * posDiffs(0)) / timeStep) / invMass;
 
 								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
 								rawImpulses(indices) = a * 1;
@@ -554,7 +592,8 @@ public:
 							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
 							if (timeStep > 0.0 && iteration > 0)
 							{
-								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep); // * invMasses(ImpulseCounter);
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep) / invMass;
 							}
 						}
 					}
@@ -575,7 +614,8 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0 )
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ); // * invMasses(ImpulseCounter);
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ) / invMass;
                             }
                         }
                     }
@@ -638,7 +678,8 @@ public:
 							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
 							if (timeStep > 0.0 && (ParticleIndex > 2) && posDiffs(ParticleIndex) > tolerance && iteration > 0)
 							{
-								rawImpulses[(c.particleIndices[ParticleIndex])] += ((CRCoeff * posDiffs(ParticleIndex)) / timeStep);
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+								rawImpulses[(c.particleIndices[ParticleIndex])] += ((CRCoeff * posDiffs(ParticleIndex)) / timeStep) * invMass;
 							}
 						}
 					}
@@ -648,8 +689,8 @@ public:
 
 			for (Spring s : springs) {
 				double impulse = s.getImpulse(rawX, timeStep);
-				rawImpulses[s.getParticleIndice1()] = impulse;
-				rawImpulses[s.getParticleIndice2()] = -impulse;	
+				rawImpulses[s.getParticleIndice1()] += impulse;
+				rawImpulses[s.getParticleIndice2()] += -impulse;	
 			}
 		}
 
@@ -725,9 +766,9 @@ public:
             
 				if (j == 1) {
 					// spring
-					double K = 20;
-					double C = 5;
-					springs.push_back(Spring(meshes[attachM1(i)].rawOffset + 3 * attachV1(i) + j, meshes[attachM2(i)].rawOffset + 3 * attachV2(i) + j, refValue, K));
+					double K = 500000;
+					double C = 5000000000;
+					springs.push_back(Spring(particleIndices(0), particleIndices(1), rawInvMasses(0), rawInvMasses(1),  refValue, K));
 				}
 				else {
 					interMeshConstraints.push_back(Constraint(ATTACHMENTSTATIC, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));

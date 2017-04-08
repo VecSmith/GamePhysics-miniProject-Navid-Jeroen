@@ -18,10 +18,16 @@ class Spring {
 	int partical1Indice;
 	int partical2Indice;
 
-public:
 
-	Spring(int indice1, int indice2, double initLength, double K) :
-		partical1Indice(indice1), partical2Indice(indice2), initialLength(initLength), springConstant(K){
+
+public:
+	double invMass1;
+	double invMass2;
+
+	Spring(int indice1, int indice2, double invMass1, double invMass2, double initLength, double K, double C = 1) :
+		partical1Indice(indice1), partical2Indice(indice2),
+		invMass1(invMass1), invMass2(invMass2),
+		initialLength(initLength), springConstant(K), dampingCoeffecient(C){
 
 	}
 
@@ -40,13 +46,17 @@ public:
 		return getForce(rawX) * timeStep;
 	}
 
-	RowVector3d dampSpringVelocity(RowVector3d speed1, RowVector3d speed2) {
+/*	RowVector3d dampSpringVelocity(RowVector3d speed1, RowVector3d speed2) {
+		return -dampingCoeffecient*(speed1 - speed2);
+	}*/
+
+	/// don't use this yet
+	double dampSpringForce(double speed1, double speed2) {
 		return -dampingCoeffecient*(speed1 - speed2);
 	}
 
-	/// don't use this yet
-	double dampSpringVelocity(double speed1, double speed2) {
-		return -dampingCoeffecient*(speed1 - speed2);
+	double dampSpringImpulse(VectorXd rawVel, double timeStep) {
+		return dampSpringForce(rawVel[partical1Indice], rawVel[partical2Indice]) * timeStep;
 	}
 
 	int getParticleIndice1() {
