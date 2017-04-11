@@ -145,46 +145,29 @@ public:
 		for ( int rowCounter = 0; rowCounter < currVel.rows(); rowCounter++ )
 		{
 
-			/*RowVector3d J = currImpulses.row(rowCounter);//posDiffs(0) * CRCoeff;
-			if (!J.isZero()) {
-				RowVector3d v = currVel.row(rowCounter);
-				double result = J.dot(v);
-				double lambda = -result / (J * invMasses(rowCounter)*J.transpose());
-				RowVector3d temp = invMasses(rowCounter) * J.transpose() * lambda;
-
-				result = J.dot(v + temp);
-				currVel.row(rowCounter) += temp ;
-				int debug = 0;
-			}*/
 
 			//currImpulses.row(rowCounter) += GravityEffect / invMasses(rowCounter); //alternative way with impulses instead of directly
 			currVel.row(rowCounter) += GravityEffect;
 
-			//impulse = F * timestep
-			// F = m * a
-			// v+ = v- + a*timestep
-			// impulse / timestep / mass * timestep + v- = v+
-			// v+ = v- + impulse * invMass
-			//cout << "before imp" << currVel.row(rowCounter) << endl;
-
-			//cout << "after imp" << currVel.row(rowCounter) << endl;
 		}
 
         for (int ImpulseCounter = 0; ImpulseCounter <  currImpulses.rows(); ImpulseCounter++)
         {
 			if (!currImpulses.row(ImpulseCounter).isZero()) {
-			/*	RowVector3d F = currImpulses.row(ImpulseCounter) / timeStep;
-				RowVector3d a = F * invMasses(ImpulseCounter);
-				RowVector3d dV = a * timeStep;
-				cout << "before imp" << currVel.row(ImpulseCounter) << endl;
-				cout << "F" << F << endl;
-				cout << "a" << a << endl;
-				cout << "dV" << dV << endl;
-				RowVector3d impulse = currImpulses.row(ImpulseCounter) / invMasses(ImpulseCounter);
+				//impulse = F * timestep
+				// F = m * a
+				// v+ = v- + a*timestep
+				// impulse / timestep / mass * timestep + v- = v+
+				// v+ = v- + impulse * invMass
+				//cout << "before imp" << currVel.row(rowCounter) << endl;
 
-				cout << "CRCoeff * posDiff / timeStep / invMass" << impulse;
+				//cout << "after imp" << currVel.row(rowCounter) << endl;
+
+				/*cout << "CRCoeff * posDiff / timeStep / invMass" << impulse;
 				dV = impulse / timeStep * invMasses(ImpulseCounter) * timeStep;
 				cout << "dV" << dV;*/
+
+				//cout << ImpulseCounter << ": " << currImpulses.row(ImpulseCounter) << endl;
 
 				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter) * invMasses(ImpulseCounter);
 
@@ -212,9 +195,11 @@ public:
 			currX.row(rowCounter) += currVel.row(rowCounter) * timeStep;
 	//		cout << "ater imp" << currX.row(rowCounter) << endl;
 	//		cout << "imp" << currVel.row(rowCounter) << endl;
-		}
-        */
+		}*/
+		cout << "currXold" << currX << endl;
+		cout << "currVEL" << currVel << endl;
 		currX += currVel * timeStep;
+		cout << "currX" << currX << endl;
 
         igl::per_vertex_normals(currX, T, currNormals);
     }
@@ -418,32 +403,35 @@ public:
 		updateRawValues();
 
 		// damp spring velocity from previous stuff before frame
-	/*	if (timeStep > 0) {
+		if (timeStep > 0) {
 			for (Spring s : springs) {
 				double impulse = s.dampSpringImpulse(rawVel, timeStep); //impulse but needs to be fixed before the frame is done so need to update velocity according to this impulse right now
+				double impulse2 = s.dampSpringForce(rawVel[s.getParticleIndice2()], rawVel[s.getParticleIndice1()]) * timeStep;
 
 				//double F = impulse / timeStep;
 				//RowVector3d a = F * invMasses(ImpulseCounter);
 				//RowVector3d dV = a * timeStep;
-				
-				cout << "old1" << rawVel[s.getParticleIndice1()] << endl;
-				cout << "old2" << rawVel[s.getParticleIndice2()] << endl;
-				rawVel[s.getParticleIndice1()] += impulse / timeStep * s.invMass1 * timeStep; // can remove timeStep
-				rawVel[s.getParticleIndice2()] += impulse / timeStep * s.invMass2 * timeStep;
-				cout << "new1" << rawVel[s.getParticleIndice1()] << endl;
-				cout << "new2" << rawVel[s.getParticleIndice2()] << endl;
+				if (impulse > 0) {
+					cout << "old1" << rawVel[s.getParticleIndice1()] << endl;
+					cout << "old2" << rawVel[s.getParticleIndice2()] << endl;
+					rawVel[s.getParticleIndice1()] += impulse / timeStep * s.invMass1 * timeStep; // can remove timeStep
+					rawVel[s.getParticleIndice2()] += impulse2 / timeStep * s.invMass2 * timeStep;
+					cout << "new1" << rawVel[s.getParticleIndice1()] << endl;
+					cout << "new2" << rawVel[s.getParticleIndice2()] << endl;
+					cout << "particles:" << s.getParticleIndice1() << endl << s.getParticleIndice2() << endl;
+				}
 			}
 		}
 		// move rawVel back to curVel
 		for (int i = 0; i < meshes.size(); i++) {
-			cout << "old currVel" << endl;
-			cout << meshes[i].currVel << endl;
+			//cout << "old currVel" << endl;
+			//cout << meshes[i].currVel << endl;
 		}
 		updateMeshValues(); // need to update the meshValues so the dampening doesn't get removed
 		for (int i = 0; i < meshes.size(); i++) {
 			cout << "new currVel" << endl;
 			cout << meshes[i].currVel << endl;
-		}*/
+		}
 		// also need to update the position to wait first uhm idk
 		// cant use intergrate since that gravity gets added twice so
 		for (int i = 0; i < meshes.size(); i++) {
@@ -727,8 +715,8 @@ public:
 				if (j == 1) {
 					// spring
 					double K = 500000;
-					double C = 5000000000;
-					springs.push_back(Spring(particleIndices(0), particleIndices(1), rawInvMasses(0), rawInvMasses(1),  refValue, K));
+					double C = 1.79769e+307;
+					springs.push_back(Spring(particleIndices(0), particleIndices(1), rawInvMasses(0), rawInvMasses(1),  refValue, K, C));
 				}
 				else {
 					interMeshConstraints.push_back(Constraint(ATTACHMENTSTATIC, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
