@@ -184,7 +184,7 @@ public:
 				dV = impulse / timeStep * invMasses(ImpulseCounter) * timeStep;
 				cout << "dV" << dV;*/
 
-				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter);// / invMasses(ImpulseCounter);
+				currVel.row(ImpulseCounter) += currImpulses.row(ImpulseCounter) * invMasses(ImpulseCounter);
 
 				//cout << "imp" << currImpulses.row(ImpulseCounter) << endl;
 			}
@@ -493,7 +493,8 @@ public:
                             {
                              //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
                               //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep );
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep ) / invMass;
 
 								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
 								rawImpulses(indices) = a * 1;
@@ -546,7 +547,8 @@ public:
 							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
 							if (timeStep > 0.0 && iteration > 0)
 							{
-								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep);
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep) / invMass;
 							}
 						}
 					}
@@ -568,7 +570,8 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0 )
                             {
-                                //rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep );
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ) / invMass;
                             }
                         }
                     }
@@ -589,7 +592,8 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0)
                             {
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff ) * posDiffs(ParticleIndex) ) / timeStep ;
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff ) * posDiffs(ParticleIndex) ) / timeStep  / invMass;
                             }
                         }
                     }
