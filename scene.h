@@ -382,7 +382,6 @@ public:
         rawImpulses.conservativeResize(rawImpulses.size()+meshX.size());
         updateRawValues();
 
-		cout << COM;
         //cout<<"rawVel: "<<rawVel<<endl;
     }
 
@@ -430,8 +429,8 @@ public:
 		}
 		updateMeshValues(); // need to update the meshValues so the dampening doesn't get removed
 		for (int i = 0; i < meshes.size(); i++) {
-			cout << "new currVel" << endl;
-			cout << meshes[i].currVel << endl;
+			//cout << "new currVel" << endl;
+			//cout << meshes[i].currVel << endl;
 		}
 		// also need to update the position to wait first uhm idk
 		// cant use intergrate since that gravity gets added twice so
@@ -632,7 +631,7 @@ public:
                     }
                 }
 
-			}
+			}*/
 
 			}
 
@@ -728,11 +727,11 @@ public:
         //reading and adding inter-mesh attachment constraints
         attachM1.resize(numofConstraints);
         attachV1.resize(numofConstraints);
-        attachM2.resize(numofConstraints);
+        attachM2.resize(numofConstraints); 
         attachV2.resize(numofConstraints);
         for (int i=0;i<numofConstraints;i++){
             sceneFileHandle>>attachM1(i)>>attachV1(i)>>attachM2(i)>>attachV2(i);
-
+			
 		/*	// old attachment test
 			for (int j=0;j<3;j++){
                 VectorXi particleIndices(2); particleIndices<<meshes[attachM1(i)].rawOffset+3*attachV1(i)+j,meshes[attachM2(i)].rawOffset+3*attachV2(i)+j;
@@ -752,24 +751,6 @@ public:
 
             }*/
 			
-			if (attachM2(i) > meshes.size() - 1 && attachV2(i) == 0) {
-				double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
-				double rawIndice2 = particleID;
-				VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
-				double radii1 = meshes[attachM1(i)].radii(attachV1(i));
-				double radii2 = 1;
-				VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
-				double invMass1 = meshes[attachM1(i)].invMasses(attachV1(i));
-				double invMass2 = INFINITE; // 0 mass
-				RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
-				RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
-				VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
-				double edgeLength = (pos1 - pos2).norm();
-
-
-				interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
-			}
-		else {
 
 				double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
 				double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
@@ -786,7 +767,6 @@ public:
 
 
 				interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
-			}
 			
 
 			
