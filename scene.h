@@ -609,6 +609,29 @@ public:
                     }
                 }
 
+				if (c.constraintType == ATTACHMENTSTATIC)
+				{
+					VectorXd CurrentParticlePositions(c.particleIndices.size());
+					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
+						CurrentParticlePositions(ParticleIndex) = rawX[(c.particleIndices[ParticleIndex])];
+					}
+					c.updateValueGradient(CurrentParticlePositions);//cant do else since c isnt used next time :(
+					if (abs(c.currValue) > tolerance) // needs to happen here since resolve doesnt have the tolerance otherwise update could be removed
+					{
+						done = false;
+						c.resolveConstraint(CurrentParticlePositions, posDiffs);
+						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+						{
+							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+							if (timeStep > 0.0 && (ParticleIndex > 2) && posDiffs(ParticleIndex) > tolerance)
+							{
+								rawImpulses[(c.particleIndices[ParticleIndex])] += ((CRCoeff * posDiffs(ParticleIndex)) / timeStep);
+							}
+						}
+
+					}
+				}
+
                 /*if ( c.constraintType == COLLISION )
                 {
                     VectorXd AllParticles(6);
@@ -732,27 +755,27 @@ public:
         for (int i=0;i<numofConstraints;i++){
             sceneFileHandle>>attachM1(i)>>attachV1(i)>>attachM2(i)>>attachV2(i);
 			
-		/*	// old attachment test
+			// old attachment test
 			for (int j=0;j<3;j++){
                 VectorXi particleIndices(2); particleIndices<<meshes[attachM1(i)].rawOffset+3*attachV1(i)+j,meshes[attachM2(i)].rawOffset+3*attachV2(i)+j;
                 VectorXd rawRadii(2); rawRadii<<meshes[attachM1(i)].radii(attachV1(i)), meshes[attachM2(i)].radii(attachV2(i));
                 VectorXd rawInvMasses(2); rawInvMasses<<meshes[attachM1(i)].invMasses(attachV1(i)), meshes[attachM2(i)].invMasses(attachV2(i));
                 double refValue=meshes[attachM1(i)].currX(attachV1(i),j)-meshes[attachM2(i)].currX(attachV2(i),j);
             
-				if (j == 1) {
+				/*if (j == 1) {
 					// spring
 					double K = 500000;
 					double C = 1.79769e+307;
 					springs.push_back(Spring(particleIndices(0), particleIndices(1), rawInvMasses(0), rawInvMasses(1),  refValue, K, C));
 				}
-				else {
+				else {*/
 					interMeshConstraints.push_back(Constraint(ATTACHMENTSTATIC, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
-				}
+				//}
 
-            }*/
+            }
 			
 
-				double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
+			/*	double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
 				double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
 				VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
 				double radii1 = meshes[attachM1(i)].radii(attachV1(i));
@@ -766,7 +789,7 @@ public:
 				double edgeLength = (pos1 - pos2).norm();
 
 
-				interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
+				interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));*/
 			
 
 			
