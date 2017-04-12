@@ -196,10 +196,10 @@ public:
 	//		cout << "ater imp" << currX.row(rowCounter) << endl;
 	//		cout << "imp" << currVel.row(rowCounter) << endl;
 		}*/
-		cout << "currXold" << currX << endl;
-		cout << "currVEL" << currVel << endl;
+		//cout << "currXold" << currX << endl;
+		//cout << "currVEL" << currVel << endl;
 		currX += currVel * timeStep;
-		cout << "currX" << currX << endl;
+		//cout << "currX" << currX << endl;
 
         igl::per_vertex_normals(currX, T, currNormals);
     }
@@ -382,6 +382,7 @@ public:
         rawImpulses.conservativeResize(rawImpulses.size()+meshX.size());
         updateRawValues();
 
+		cout << COM;
         //cout<<"rawVel: "<<rawVel<<endl;
     }
 
@@ -682,6 +683,8 @@ public:
 
         currTime=0;
         sceneFileHandle>>numofObjects>>numofConstraints;
+		RowVector3d COMMesh1;
+		RowVector4d orientationMesh1;
         for (int i=0;i<numofObjects;i++){
             MatrixXi objT;
             MatrixXd objX;
@@ -694,8 +697,33 @@ public:
             orientation.normalize();
             igl::readOFF(dataFolder+std::string("/")+OFFFileName,objX,objT);
             addMesh(objX,objT,density, rigidity, isFixed, COM, orientation);
+
+			if (i == 0) {
+				COMMesh1 = COM;
+				orientationMesh1 = orientation;
+			}
         }
 
+		// add axel particle
+		//T.conservativeResize(T.rows() + meshT.rows(), 3);
+		//T.block(oldTsize, 0, meshT.rows(), 3) = meshT.array() + rawX.size() / 3;  //to offset T to global index
+		// 1 xyz value
+		int particleID = rawX.size();
+		rawX.conservativeResize(rawX.size() + 3);
+		rawVel.conservativeResize(rawVel.size() + 3);
+		rawImpulses.conservativeResize(rawImpulses.size() + 3);
+
+		MatrixXd positionOffset (1,3);
+		MatrixXi triangle(0, 3);
+
+		positionOffset(0) = 0;// RowVector3d(0, 0, 0);
+		positionOffset(1) = 0;
+		positionOffset(2) = 0;
+		/*triangle(0) = 0;
+		triangle(1) = 0;
+		triangle(2) = 0;*/
+		
+		//addMesh(positionOffset, triangle, 1, 1, false, COMMesh1, orientationMesh1);
 
         //reading and adding inter-mesh attachment constraints
         attachM1.resize(numofConstraints);
@@ -705,7 +733,7 @@ public:
         for (int i=0;i<numofConstraints;i++){
             sceneFileHandle>>attachM1(i)>>attachV1(i)>>attachM2(i)>>attachV2(i);
 
-			// old attachment test
+		/*	// old attachment test
 			for (int j=0;j<3;j++){
                 VectorXi particleIndices(2); particleIndices<<meshes[attachM1(i)].rawOffset+3*attachV1(i)+j,meshes[attachM2(i)].rawOffset+3*attachV2(i)+j;
                 VectorXd rawRadii(2); rawRadii<<meshes[attachM1(i)].radii(attachV1(i)), meshes[attachM2(i)].radii(attachV2(i));
@@ -722,36 +750,48 @@ public:
 					interMeshConstraints.push_back(Constraint(ATTACHMENTSTATIC, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
 				}
 
-            }
+            }*/
+			
+			if (attachM2(i) > meshes.size() - 1 && attachV2(i) == 0) {
+				double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
+				double rawIndice2 = particleID;
+				VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
+				double radii1 = meshes[attachM1(i)].radii(attachV1(i));
+				double radii2 = 1;
+				VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
+				double invMass1 = meshes[attachM1(i)].invMasses(attachV1(i));
+				double invMass2 = INFINITE; // 0 mass
+				RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
+				RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
+				VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
+				double edgeLength = (pos1 - pos2).norm();
+
+
+				interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
+			}
+		else {
+
+				double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
+				double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
+				VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
+				double radii1 = meshes[attachM1(i)].radii(attachV1(i));
+				double radii2 = meshes[attachM2(i)].radii(attachV2(i));
+				VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
+				double invMass1 = meshes[attachM1(i)].invMasses(attachV1(i));
+				double invMass2 = meshes[attachM2(i)].invMasses(attachV2(i));
+				RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
+				RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
+				VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
+				double edgeLength = (pos1 - pos2).norm();
+
+
+				interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
+			}
 			
 
-
-
-			/*double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
-			double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
-			VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
-			double radii1 = meshes[attachM1(i)].radii(attachV1(i));
-			double radii2 = meshes[attachM2(i)].radii(attachV2(i));
-			VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
-			double invMass1 = meshes[attachM1(i)].invMasses(attachV1(i));
-			double invMass2 = meshes[attachM2(i)].invMasses(attachV2(i));
-			RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
-			RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
-			VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
-
-			double edgeLength = (pos1 - pos2).norm();
-
-
-			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));*/
+			
         }
 
-
-
-
-		// load particle model
-
-		igl::readOFF(dataFolder + std::string("/particle.off"), particleModelX, particleModelT);
-		// don't add the model yet
         return true;
     }
 
