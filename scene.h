@@ -416,18 +416,18 @@ public:
 				//RowVector3d a = F * invMasses(ImpulseCounter);
 				//RowVector3d dV = a * timeStep;
 				if (impulse > 0) {
-					cout << "old1" << rawVel[s.getParticleIndice1()] << endl;
-					cout << "old2" << rawVel[s.getParticleIndice2()] << endl;
+				//	cout << "old1" << rawVel[s.getParticleIndice1()] << endl;
+				//	cout << "old2" << rawVel[s.getParticleIndice2()] << endl;
 					rawVel[s.getParticleIndice1()] += impulse / timeStep * s.invMass1 * timeStep; // can remove timeStep
 					rawVel[s.getParticleIndice2()] += impulse2 / timeStep * s.invMass2 * timeStep;
-					cout << "new1" << rawVel[s.getParticleIndice1()] << endl;
-					cout << "new2" << rawVel[s.getParticleIndice2()] << endl;
-					cout << "particles:" << s.getParticleIndice1() << endl << s.getParticleIndice2() << endl;
+				//	cout << "new1" << rawVel[s.getParticleIndice1()] << endl;
+				//	cout << "new2" << rawVel[s.getParticleIndice2()] << endl;
+				//	cout << "particles:" << s.getParticleIndice1() << endl << s.getParticleIndice2() << endl;
 				}
 			}
 		}
 		// move rawVel back to curVel
-		for (int i = 0; i < meshes.size(); i++) {
+		/*for (int i = 0; i < meshes.size(); i++) {
 			//cout << "old currVel" << endl;
 			//cout << meshes[i].currVel << endl;
 		}
@@ -440,7 +440,7 @@ public:
 		// cant use intergrate since that gravity gets added twice so
 		for (int i = 0; i < meshes.size(); i++) {
 			meshes[i].integratePosition(timeStep);
-		}
+		}*/
 
         //cout<<"raw positions: "<<rawV<<endl;
 
@@ -710,10 +710,10 @@ public:
         sceneFileHandle.open(dataFolder+std::string("/")+sceneFileName);
         if (!sceneFileHandle.is_open())
             return false;
-        int numofObjects, numofConstraints;
+		int numofObjects, numofConstraints, numOfSprings;
         cout << '1' << endl;
         currTime=0;
-        sceneFileHandle>>numofObjects>>numofConstraints;
+        sceneFileHandle>>numofObjects>>numofConstraints>>numOfSprings;
 		RowVector3d COMMesh1;
 		RowVector4d orientationMesh1;
         for (int i=0;i<numofObjects;i++){
@@ -759,9 +759,9 @@ public:
         attachV1.resize(numofConstraints);
         attachM2.resize(numofConstraints); 
         attachV2.resize(numofConstraints);
-        for (int i=0;i<numofConstraints;i++){
-            sceneFileHandle>>attachM1(i)>>attachV1(i)>>attachM2(i)>>attachV2(i);
-            //NOTE release mode bug was here, rawIndice1,2 were doubles!
+		for (int i = 0; i < numofConstraints; i++) {
+			sceneFileHandle >> attachM1(i) >> attachV1(i) >> attachM2(i) >> attachV2(i);
+
 			int rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
 			int rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
 			VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
@@ -779,10 +779,36 @@ public:
 			cout << edgeLength << endl;
 
 			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0, false));
-        }
+		}
+		VectorXi springMesh1(numOfSprings), springMesh2(numOfSprings);
+		VectorXi springVertice1(numOfSprings), springVertice2(numOfSprings);
+		for (int i = 0; i<numOfSprings; i++) {
+			
+			sceneFileHandle >> springMesh1(i) >> springVertice1(i) >> springMesh2(i) >> springVertice2(i);
 
+			int rawIndice1 = meshes[springMesh1(i)].rawOffset + 3 * springVertice1(i);
+			int rawIndice2 = meshes[springMesh2(i)].rawOffset + 3 * springVertice2(i);
+			VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
+			double radii1 = meshes[springMesh1(i)].radii(springVertice1(i));
+			double radii2 = meshes[springMesh2(i)].radii(springVertice2(i));
+			VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
+			double invMass1 = meshes[springMesh1(i)].invMasses(springVertice1(i));
+			double invMass2 = meshes[springMesh2(i)].invMasses(springVertice2(i));
+			RowVector3d pos1 = RowVector3d(rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2]);
+			RowVector3d pos2 = RowVector3d(rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2]);
+			VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
+
+			double edgeLength = (pos1 - pos2).norm();
+
+			//interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0, false));
+
+			double K = 50000;
+			// + 1 since y axis
+			springs.push_back(Spring(rawIndice1+1, rawIndice2+1, invMass1, invMass2, edgeLength, K, C));
+		}
         return true;
     }
+
 
 
     Scene(){}
