@@ -15,6 +15,8 @@ int maxConstraintIterations=100;
 MatrixXd platX;
 MatrixXi platT;
 VectorXi attachM1, attachM2, attachV1, attachV2;
+
+VectorXi springM1, springM2, springV1, springV2;
 double platWidth=100.0;
 double platHeight=10.0;
 double RigidityAllowance = 0.0;
@@ -90,6 +92,14 @@ bool pre_draw(igl::viewer::Viewer &viewer)
     }
     viewer.data.add_edges(P1,P2,Eigen::RowVector3d(255.0,0.0,0.0));
 
+	// spring lines
+	P1.resize(springM1.rows(), 3);
+	P2.resize(springM2.rows(), 3);
+	for (int i = 0; i<springM1.rows(); i++) {
+		P1.row(i) << scene.meshes[springM1(i)].currX.row(springV1(i));
+		P2.row(i) << scene.meshes[springM2(i)].currX.row(springV2(i));
+	}
+	viewer.data.add_edges(P1, P2, Eigen::RowVector3d(0, 255.0, 0.0));
     return false;
 }
 
@@ -113,7 +123,7 @@ int main(int argc, char *argv[])
     //create platform
     createPlatform(100.0, 10.0);
 
-	scene.loadScene(std::string(DATA_PATH), std::string(argv[1]), platWidth, platHeight, attachM1, attachV1, attachM2, attachV2);
+	scene.loadScene(std::string(DATA_PATH), std::string(argv[1]), platWidth, platHeight, attachM1, attachV1, attachM2, attachV2, springM1, springV1, springM2, springV2);
 
     //scene.addMesh(platV, platF, 10000.0, true, platCOM, platOrientation);*/
     scene.updateScene(0.0, CRCoeff, X,T, tolerance,maxConstraintIterations, platX, platT);

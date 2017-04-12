@@ -407,7 +407,7 @@ public:
 		updateRawValues();
 
 		// damp spring velocity from previous stuff before frame
-		if (timeStep > 0) {
+		/*if (timeStep > 0) {
 			for (Spring s : springs) {
 				double impulse = s.dampSpringImpulse(rawVel, timeStep); //impulse but needs to be fixed before the frame is done so need to update velocity according to this impulse right now
 				double impulse2 = s.dampSpringForce(rawVel[s.getParticleIndice2()], rawVel[s.getParticleIndice1()]) * timeStep;
@@ -425,7 +425,7 @@ public:
 				//	cout << "particles:" << s.getParticleIndice1() << endl << s.getParticleIndice2() << endl;
 				}
 			}
-		}
+		}*/
 		// move rawVel back to curVel
 		/*for (int i = 0; i < meshes.size(); i++) {
 			//cout << "old currVel" << endl;
@@ -702,7 +702,7 @@ public:
 
     //loading a scene from the scene .txt files
     //you do not need to update this function
-    bool loadScene(const std::string dataFolder, const std::string sceneFileName, const double _platWidth, const double _platHeight, VectorXi& attachM1, VectorXi& attachV1, VectorXi& attachM2, VectorXi& attachV2){
+    bool loadScene(const std::string dataFolder, const std::string sceneFileName, const double _platWidth, const double _platHeight, VectorXi& attachM1, VectorXi& attachV1, VectorXi& attachM2, VectorXi& attachV2, VectorXi& springM1, VectorXi& springV1, VectorXi& springM2, VectorXi& springV2){
 
         platWidth=_platWidth;
         platHeight=_platHeight;
@@ -733,27 +733,6 @@ public:
             addMesh(objX,objT,density, rigidity, isFixed, COM, orientation, isTire);
         }
 
-		// add axel particle
-		//T.conservativeResize(T.rows() + meshT.rows(), 3);
-		//T.block(oldTsize, 0, meshT.rows(), 3) = meshT.array() + rawX.size() / 3;  //to offset T to global index
-		// 1 xyz value
-		int particleID = rawX.size();
-		rawX.conservativeResize(rawX.size() + 3);
-		rawVel.conservativeResize(rawVel.size() + 3);
-		rawImpulses.conservativeResize(rawImpulses.size() + 3);
-
-		MatrixXd positionOffset (1,3);
-		MatrixXi triangle(0, 3);
-
-		positionOffset(0) = 0;// RowVector3d(0, 0, 0);
-		positionOffset(1) = 0;
-		positionOffset(2) = 0;
-		/*triangle(0) = 0;
-		triangle(1) = 0;
-		triangle(2) = 0;*/
-		
-		//addMesh(positionOffset, triangle, 1, 1, false, COMMesh1, orientationMesh1);
-
         //reading and adding inter-mesh attachment constraints
         attachM1.resize(numofConstraints);
         attachV1.resize(numofConstraints);
@@ -780,20 +759,22 @@ public:
 
 			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0, false));
 		}
-		VectorXi springMesh1(numOfSprings), springMesh2(numOfSprings);
-		VectorXi springVertice1(numOfSprings), springVertice2(numOfSprings);
+		springM1.resize(numOfSprings);
+		springV1.resize(numOfSprings);
+		springM2.resize(numOfSprings);
+		springV2.resize(numOfSprings);
 		for (int i = 0; i<numOfSprings; i++) {
 			
-			sceneFileHandle >> springMesh1(i) >> springVertice1(i) >> springMesh2(i) >> springVertice2(i);
+			sceneFileHandle >> springM1(i) >> springV1(i) >> springM2(i) >> springV2(i);
 
-			int rawIndice1 = meshes[springMesh1(i)].rawOffset + 3 * springVertice1(i);
-			int rawIndice2 = meshes[springMesh2(i)].rawOffset + 3 * springVertice2(i);
+			int rawIndice1 = meshes[springM1(i)].rawOffset + 3 * springV1(i);
+			int rawIndice2 = meshes[springM2(i)].rawOffset + 3 * springV2(i);
 			VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
-			double radii1 = meshes[springMesh1(i)].radii(springVertice1(i));
-			double radii2 = meshes[springMesh2(i)].radii(springVertice2(i));
+			double radii1 = meshes[springM1(i)].radii(springV1(i));
+			double radii2 = meshes[springM2(i)].radii(springV2(i));
 			VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
-			double invMass1 = meshes[springMesh1(i)].invMasses(springVertice1(i));
-			double invMass2 = meshes[springMesh2(i)].invMasses(springVertice2(i));
+			double invMass1 = meshes[springM1(i)].invMasses(springV1(i));
+			double invMass2 = meshes[springM2(i)].invMasses(springV2(i));
 			RowVector3d pos1 = RowVector3d(rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2]);
 			RowVector3d pos2 = RowVector3d(rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2]);
 			VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
@@ -803,8 +784,9 @@ public:
 			//interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0, false));
 
 			double K = 50000;
+			double dampingCoeffecient = 25000;
 			// + 1 since y axis
-			springs.push_back(Spring(rawIndice1+1, rawIndice2+1, invMass1, invMass2, edgeLength, K, C));
+			springs.push_back(Spring(rawIndice1+1, rawIndice2+1, invMass1, invMass2, edgeLength, K, dampingCoeffecient));
 		}
         return true;
     }
