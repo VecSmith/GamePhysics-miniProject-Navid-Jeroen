@@ -18,7 +18,7 @@ VectorXi attachM1, attachM2, attachV1, attachV2;
 double platWidth=100.0;
 double platHeight=10.0;
 double RigidityAllowance = 0.0;
-double TirePressure = 35.0;
+double TirePressure = 40.0;
 
 Scene scene;
 

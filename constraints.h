@@ -33,10 +33,11 @@ public:
     VectorXd radii;
 
     double refValue;                    //reference value to compare against. Can be rest length, dihedral angle, barrier, etc.
+    bool isTire = false;
     double stiffness;
     ConstraintType constraintType;  //the type of the constraint, and will affect the value and the gradient. This SHOULD NOT change after initialization!
 
-    Constraint(const ConstraintType _constraintType, const VectorXi& _particleIndices, const VectorXd& _radii, const VectorXd& invMasses, const double _refValue, const double _stiffness):constraintType(_constraintType), refValue(_refValue), stiffness(_stiffness)
+    Constraint(const ConstraintType _constraintType, const VectorXi& _particleIndices, const VectorXd& _radii, const VectorXd& invMasses, const double _refValue, const double _stiffness, const bool isTire_):constraintType(_constraintType), refValue(_refValue), stiffness(_stiffness), isTire(isTire_)
     {
         currValue=0.0;
         particleIndices=_particleIndices;
@@ -88,7 +89,7 @@ public:
                 //HACK two particles are in the direction of the center they are affected by pressure
                 //     this is so that the surface area of the tire doesnt change that much , but its
                 //     width kinda changes.
-                if ( currValue < 0 )
+                if ( currValue < 0 && isTire )
                 {
                     currValue = ConnectorVector.norm() - AlteredRefValue;
                 }

@@ -65,6 +65,7 @@ public:
 
     //kinematics
     bool isFixed;  //is the object immobile
+    bool isTire = false;
     double rigidity;  //how much the mesh is really rigid
     MatrixXd currVel;     //velocities per particle. Exactly in the size of origV
     vector<Constraint> meshConstraints;  //the systematic constraints in the mesh (i.e., rigidity)
@@ -125,7 +126,7 @@ public:
                     VectorXi particleIndices(6); particleIndices<<rawOffset+3*i, rawOffset+3*i+1, rawOffset+3*i+2, m.rawOffset+3*j, m.rawOffset+3*j+1, m.rawOffset+3*j+2;
                     VectorXd rawInvMasses(6); rawInvMasses<<invMasses(i), invMasses(i),invMasses(i),m.invMasses(j),m.invMasses(j),m.invMasses(j);
                     VectorXd rawRadii(6); rawRadii <<radii(i), radii(i), radii(i), m.radii(j), m.radii(j), m.radii(j);
-                    Constraint c(COLLISION,  particleIndices, rawRadii,rawInvMasses, 0.0, 1.0);
+                    Constraint c(COLLISION,  particleIndices, rawRadii,rawInvMasses, 0.0, 1.0, false);
                     collConstraints.push_back(c);
                 }
             }
@@ -241,10 +242,11 @@ public:
     }
 
 
-    Mesh(const MatrixXd& _X, const MatrixXi& _T, const int _rawOffset, const double density, const double _rigidity, const bool _isFixed, const RowVector3d& userCOM, const RowVector4d& userOrientation){
+    Mesh(const MatrixXd& _X, const MatrixXi& _T, const int _rawOffset, const double density, const double _rigidity, const bool _isFixed, const RowVector3d& userCOM, const RowVector4d& userOrientation, const bool isTire_){
         origX=_X;
         T=_T;
         isFixed=_isFixed;
+        isTire = isTire_;
         rawOffset=_rawOffset;
         rigidity=_rigidity;
         currVel=MatrixXd::Zero(origX.rows(),3);
@@ -321,7 +323,7 @@ public:
                     VectorXd rawRadii(6); rawRadii << radii(v[j]), radii(v[j]), radii(v[j]), radii(v[k]), radii(v[k]), radii(v[k]);
                     VectorXd rawInvMasses(6); rawInvMasses << invMasses(v[j]), invMasses(v[j]), invMasses(v[j]), invMasses(v[k]), invMasses(v[k]), invMasses(v[k]);
                     double edgeLength = (currX.row(v[j]) - currX.row(v[k])).norm();
-                    meshConstraints.push_back(Constraint(RIGIDITY, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
+                    meshConstraints.push_back(Constraint(RIGIDITY, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0, isTire));
                 }
             }
 
@@ -378,9 +380,9 @@ public:
 
 
     //adding an objects. You do not need to update this generally
-    void addMesh(const MatrixXd& meshX, const MatrixXi& meshT, const double density, const double rigidity, const bool isFixed, const RowVector3d& COM, const RowVector4d orientation){
+    void addMesh(const MatrixXd& meshX, const MatrixXi& meshT, const double density, const double rigidity, const bool isFixed, const RowVector3d& COM, const RowVector4d orientation, const bool isTire){
 
-        Mesh m(meshX,meshT, rawX.size(), density, rigidity, isFixed, COM, orientation);
+        Mesh m(meshX,meshT, rawX.size(), density, rigidity, isFixed, COM, orientation, isTire);
         meshes.push_back(m);
         int oldTsize=T.rows();
         T.conservativeResize(T.rows()+meshT.rows(),3);
@@ -455,7 +457,7 @@ public:
                     //NOTE check whether object need the barrier constraint or not
                     if ( XLimitation && ZLimitation )
                     {
-                        Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0);
+                        Constraint platformBarrier(BARRIER, particleIndices, rawRadii, rawInvMasses, platHeight/2, 1.0, false);
 						barrierConstraints.push_back(platformBarrier);
                     }
                 }
@@ -569,7 +571,7 @@ public:
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.updateValueGradient( AllParticles );
-                    double Range = c.refValue * ( 1 - (TirePressure / MaxTirePressure) );
+                    double Range = c.isTire ? (c.refValue * ( 1 - (TirePressure / MaxTirePressure) )) : (0);
                     if ( c.currValue > 0 || c.currValue < - tolerance - Range )
                     {
                         done = false;
@@ -579,8 +581,8 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0 )
                             {
-								//double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
-                                //rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ) / invMass;
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ) / invMass;
                             }
                         }
                     }
@@ -588,6 +590,7 @@ public:
 
                 if ( c.constraintType == COLLISION )
                 {
+                    /*
                     VectorXd AllParticles(6);
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
@@ -606,6 +609,7 @@ public:
                             }
                         }
                     }
+                    */
                 }
 
 			}
@@ -648,7 +652,7 @@ public:
         if (!sceneFileHandle.is_open())
             return false;
         int numofObjects, numofConstraints;
-
+        cout << '1' << endl;
         currTime=0;
         sceneFileHandle>>numofObjects>>numofConstraints;
         for (int i=0;i<numofObjects;i++){
@@ -662,7 +666,10 @@ public:
             sceneFileHandle>>OFFFileName>>density>>rigidity>>isFixed>>COM(0)>>COM(1)>>COM(2)>>orientation(0)>>orientation(1)>>orientation(2)>>orientation(3);
             orientation.normalize();
             igl::readOFF(dataFolder+std::string("/")+OFFFileName,objX,objT);
-            addMesh(objX,objT,density, rigidity, isFixed, COM, orientation);
+			bool isTire = false;
+			if (i == 0)
+				isTire = true;
+            addMesh(objX,objT,density, rigidity, isFixed, COM, orientation, isTire);
         }
 
 
@@ -673,32 +680,24 @@ public:
         attachV2.resize(numofConstraints);
         for (int i=0;i<numofConstraints;i++){
             sceneFileHandle>>attachM1(i)>>attachV1(i)>>attachM2(i)>>attachV2(i);
-
-/*            for (int j=0;j<3;j++){
-                VectorXi particleIndices(2); particleIndices<<meshes[attachM1(i)].rawOffset+3*attachV1(i)+j,meshes[attachM2(i)].rawOffset+3*attachV2(i)+j;
-                VectorXd rawRadii(2); rawRadii<<meshes[attachM1(i)].radii(attachV1(i)), meshes[attachM2(i)].radii(attachV2(i));
-                VectorXd rawInvMasses(2); rawInvMasses<<meshes[attachM1(i)].invMasses(attachV1(i)), meshes[attachM2(i)].invMasses(attachV2(i));
-                double refValue=meshes[attachM1(i)].currX(attachV1(i),j)-meshes[attachM2(i)].currX(attachV2(i),j);
-                interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, refValue, 1.0));
-
-            }*/
-			double rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
-			double rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
+            //NOTE release mode bug was here, rawIndice1,2 were doubles!
+			int rawIndice1 = meshes[attachM1(i)].rawOffset + 3 * attachV1(i);
+			int rawIndice2 = meshes[attachM2(i)].rawOffset + 3 * attachV2(i);
 			VectorXi particleIndices(6); particleIndices << rawIndice1, rawIndice1 + 1, rawIndice1 + 2, rawIndice2, rawIndice2 + 1, rawIndice2 + 2;
 			double radii1 = meshes[attachM1(i)].radii(attachV1(i));
 			double radii2 = meshes[attachM2(i)].radii(attachV2(i));
 			VectorXd rawRadii(6); rawRadii << radii1, radii1, radii1, radii2, radii2, radii2;
 			double invMass1 = meshes[attachM1(i)].invMasses(attachV1(i));
 			double invMass2 = meshes[attachM2(i)].invMasses(attachV2(i));
-			RowVector3d pos1; pos1 << rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2];
-			RowVector3d pos2; pos2 << rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2];
+			RowVector3d pos1 = RowVector3d(rawX[rawIndice1], rawX[rawIndice1 + 1], rawX[rawIndice1 + 2]);
+			RowVector3d pos2 = RowVector3d(rawX[rawIndice2], rawX[rawIndice2 + 1], rawX[rawIndice2 + 2]);
 			VectorXd rawInvMasses(6); rawInvMasses << invMass1, invMass1, invMass1, invMass2, invMass2, invMass2;
 
 			double edgeLength = (pos1 - pos2).norm();
 
 			cout << edgeLength << endl;
 
-			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0));
+			interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0, false));
         }
 
         return true;
