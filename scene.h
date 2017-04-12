@@ -18,7 +18,9 @@ using namespace std;
 #define PI 3.14159265358979323846264338327950
 #define GravityAcceleration 9.80665
 
+extern double TirePressure;
 extern double RigidityAllowance;
+double TireCenterX = 0,TireCenterY = 12.5,TireCenterZ = 0;
 
 void ConstructEFi(const MatrixXi& FE, const MatrixXi& EF, MatrixXi& EFi, MatrixXd& FESigns)
 {
@@ -431,10 +433,18 @@ public:
                 //NOTE BARRIER, loop through the objects particles
                 for ( int ParticleCounter = 0; ParticleCounter < Object.currX.rows() ; ParticleCounter++ )
                 {
-
     				RowVector3d ParticlePosition = Object.currX.row(ParticleCounter);
     				double ParticleRadius = Object.radii(ParticleCounter);
 
+                    //HACK assuming the first object is the tire
+                    /*
+                    if ( MeshCounter == 0 )
+                    {
+                        TireCenterX = ( TireCenterX + ParticlePosition(0) ) / 2;
+                        TireCenterY = ( TireCenterX + ParticlePosition(1) ) / 2;
+                        TireCenterZ = ( TireCenterX + ParticlePosition(2) ) / 2;
+                    }
+                    */
                     VectorXi particleIndices(1); particleIndices << Object.rawOffset + (ParticleCounter * 3);
     				VectorXd rawInvMasses(1); rawInvMasses << Object.invMasses(ParticleCounter);
                     VectorXd rawRadii(1); rawRadii << ParticleRadius;
@@ -451,7 +461,6 @@ public:
                 }
             }
         }
-
 
         //NOTE lecture 7 slide 11 onwards
 
@@ -493,8 +502,8 @@ public:
                             {
                              //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
                               //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
-                              rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep ) / invMass;
+							    double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+                                rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep ) / invMass;
 
 								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
 								rawImpulses(indices) = a * 1;
@@ -560,8 +569,8 @@ public:
                     AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
                                     rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
                     c.updateValueGradient( AllParticles );
-                    double Range = ( RigidityAllowance != 0 ) ? ( c.refValue / RigidityAllowance ) : (0);
-                    if ( abs(c.currValue) > tolerance + Range )
+                    double Range = c.refValue * ( 1 - (TirePressure / MaxTirePressure) );
+                    if ( c.currValue > 0 || c.currValue < - tolerance - Range )
                     {
                         done = false;
                         c.resolveConstraint( AllParticles, posDiffs );
@@ -570,8 +579,8 @@ public:
                             rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
                             if ( timeStep > 0.0 && iteration > 0 )
                             {
-								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ) / invMass;
+								//double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+                                //rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ) / invMass;
                             }
                         }
                     }

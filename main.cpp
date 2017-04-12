@@ -18,6 +18,7 @@ VectorXi attachM1, attachM2, attachV1, attachV2;
 double platWidth=100.0;
 double platHeight=10.0;
 double RigidityAllowance = 0.0;
+double TirePressure = 35.0;
 
 Scene scene;
 
@@ -145,9 +146,15 @@ int main(int argc, char *argv[])
         });
 
         viewer.ngui->addVariable<double>("Rigidity Range",[&](double val_0) {
-            RigidityAllowance=val_0;
+            RigidityAllowance = val_0;
         },[&]() {
             return RigidityAllowance;
+        });
+
+        viewer.ngui->addVariable<double>("Tire Pressure",[&](double val_1) {
+            TirePressure = val_1;
+        },[&]() {
+            return TirePressure;
         });
 
         // call to generate menu

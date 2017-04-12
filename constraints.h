@@ -15,6 +15,10 @@ using namespace Eigen;
 using namespace std;
 
 extern double RigidityAllowance;
+extern double TirePressure;
+extern double TireCenterX, TireCenterY, TireCenterZ;
+
+#define MaxTirePressure 40.0
 
 //constraint types
 typedef enum ConstraintType{ATTACHMENT, RIGIDITY, COLLISION, BARRIER} ConstraintType;
@@ -78,8 +82,16 @@ public:
                 RowVector3d ParticleCenter1 = RowVector3d( currPos(0), currPos(1), currPos(2) );
                 RowVector3d ParticleCenter2 = RowVector3d( currPos(3), currPos(4), currPos(5) );
                 RowVector3d ConnectorVector = ParticleCenter1 - ParticleCenter2;
-                double Range = ( RigidityAllowance != 0 ) ? ( refValue / RigidityAllowance ) : (0);
-                currValue = ConnectorVector.norm() - refValue - Range;
+                double AlteredRefValue = refValue * ( TirePressure / MaxTirePressure );
+                double Range = refValue * ( 1 - (TirePressure / MaxTirePressure) );
+                currValue = ConnectorVector.norm() - refValue;
+                //HACK two particles are in the direction of the center they are affected by pressure
+                //     this is so that the surface area of the tire doesnt change that much , but its
+                //     width kinda changes.
+                if ( currValue < 0 )
+                {
+                    currValue = ConnectorVector.norm() - AlteredRefValue;
+                }
                 ConnectorVector = ConnectorVector.normalized();
                 currGradient(0) = ConnectorVector(0);
                 currGradient(1) = ConnectorVector(1);
