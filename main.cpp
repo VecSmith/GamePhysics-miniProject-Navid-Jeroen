@@ -21,7 +21,7 @@ double platWidth=100.0;
 double platHeight=10.0;
 double RigidityAllowance = 0.0;
 double TirePressure = 40.0;
-double SpringConstant = 500000;
+double SpringConstant = 50000;
 
 Scene scene;
 
