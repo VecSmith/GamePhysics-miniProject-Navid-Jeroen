@@ -4,6 +4,8 @@
 
 using namespace Eigen;
 
+extern double SpringConstant;
+
 class Spring {
 	double initialLength; // in meters
 	double springConstant; //K  in Newton/meter
@@ -35,7 +37,7 @@ public:
 		return getForce(rawX[partical1Indice], rawX[partical2Indice]);
 	}
 	double getForce(double partical1Position, double partical2Position) {
-		return -springConstant *(partical1Position - partical2Position - initialLength);
+		return -SpringConstant *(partical1Position - partical2Position - initialLength);
 	}
 
 	double getImpulse(double partical1Position, double partical2Position, double timeStep) {
@@ -57,6 +59,34 @@ public:
 
 	double dampSpringImpulse(VectorXd rawVel, double timeStep) {
 		return dampSpringForce(rawVel[partical1Indice], rawVel[partical2Indice]) * timeStep;
+	}
+
+	double getTotalImpulse(VectorXd rawX, double timeStep) {
+		// mass * acceleration + C * velocity + K * position = 0
+		// ma + Cv + Kx = 0;
+		// m(d^2 x)/(dt^2) + c dx/dt + k x = 0
+		//  homogeneous second order differential equation
+		// x = e^lambda
+		// m lambda^2 + c lambda + k = 0
+		// abc formula
+		// lamda = (-c + or - sqrt(c^2 - 4mk) ) / (2m)
+
+		/// uhm 2 masses?
+		double useless1 = dampingCoeffecient*dampingCoeffecient - 4 / invMass1* springConstant;
+		if (useless1 > 0) {
+			cout << "hey" << endl;
+		}
+		double useless = sqrt(dampingCoeffecient*dampingCoeffecient - 4 / invMass1* springConstant);
+		double lambdaPlus = (-dampingCoeffecient + sqrt(dampingCoeffecient*dampingCoeffecient - 4 / invMass1* springConstant)) * (2 * invMass1);
+		double lambdaMinus = (-dampingCoeffecient - sqrt(dampingCoeffecient*dampingCoeffecient - 4 / invMass1* springConstant)) * (2 * invMass1);
+
+		
+		///shouldnt just take lambdaPlus
+		
+		double x = exp(lambdaPlus);
+		// v_avg = \Delta s / \Delta t
+		double velocity = x / timeStep;
+		return velocity / invMass1;
 	}
 
 	int getParticleIndice1() {
