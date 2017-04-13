@@ -53,6 +53,13 @@ public:
 	}*/
 
 	/// don't use this yet
+	double dampSpringForce(double impulse) {
+		double vel1 = impulse * invMass1;
+		double vel2 = -impulse * invMass2;
+		return -dampingCoeffecient*(vel1 - vel2);
+	}
+
+	/// don't use this yet
 	double dampSpringForce(double speed1, double speed2) {
 		return -dampingCoeffecient*(speed1 - speed2);
 	}
@@ -72,7 +79,7 @@ public:
 		// lamda = (-c + or - sqrt(c^2 - 4mk) ) / (2m)
 
 		/// uhm 2 masses?
-		double useless1 = dampingCoeffecient*dampingCoeffecient - 4 / invMass1* springConstant;
+	/*	double useless1 = dampingCoeffecient*dampingCoeffecient - 4 / invMass1* springConstant;
 		if (useless1 > 0) {
 			cout << "hey" << endl;
 		}
@@ -86,7 +93,27 @@ public:
 		double x = exp(lambdaPlus);
 		// v_avg = \Delta s / \Delta t
 		double velocity = x / timeStep;
-		return velocity / invMass1;
+		return velocity / invMass1;*/
+	/*	double mass1 = 1 / invMass1;
+		double mass2 = 1 / invMass2;
+		double mass = (mass1 * mass2) / (mass1 + mass2);
+
+		double angular = sqrt(SpringConstant/mass);
+		double dampingRatio = dampingCoeffecient / (2 * sqrt(mass*SpringConstant));
+
+		double omega = angular * dampingRatio;
+		double alpha = angular * sqrt(1.0 - dampingRatio * dampingRatio);
+
+		double expValue = exp(-omega * timeStep);
+		double cosValue = cos(alpha * timeStep);
+		double sinValue = sin(alpha * timeStep);
+
+		double pos1 = rawX[partical1Indice];
+		double pos2 = rawX[partical2Indice];
+
+		double length = pos1 - pos2;
+		double pos = (initialLength + expValue*length) / alpha;
+		expValue*((c1*omega - c2*alpha)*cosValue +	(c1*alpha + c2*omega)*sinValue);*/
 	}
 
 	int getParticleIndice1() {

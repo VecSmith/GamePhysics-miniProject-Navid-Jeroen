@@ -572,7 +572,7 @@ public:
 						rawX[(c.particleIndices[3])], rawX[(c.particleIndices[4])], rawX[(c.particleIndices[5])];
 					c.updateValueGradient(AllParticles);
 					double Range = c.isTire ? (c.refValue * (1 - (TirePressure / MaxTirePressure))) : (0);
-					if (c.currValue > 0.0001 || c.currValue < -tolerance - Range)
+					if (c.currValue > tolerance || c.currValue < -tolerance - Range)
 					{
 						done = false;
 						c.resolveConstraint(AllParticles, posDiffs);
@@ -638,7 +638,9 @@ public:
 			for (Spring s : springs) {
 				//s.updateSpringConstraint()
 				double impulse = s.getImpulse(rawX, timeStep);
-				double totalImpulse = s.getTotalImpulse(rawX, timeStep);
+				//double totalImpulse = s.getTotalImpulse(rawX, timeStep);
+				double dampImpulse = s.dampSpringForce(impulse) * timeStep;
+				impulse += dampImpulse;
 
 				rawImpulses[s.getParticleIndice1()] += impulse;
 				rawImpulses[s.getParticleIndice2()] += -impulse;	
