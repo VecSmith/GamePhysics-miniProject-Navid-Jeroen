@@ -22,6 +22,7 @@ using namespace std;
 
 extern double TirePressure;
 extern double RigidityAllowance;
+extern double SpringConstant;
 double TireCenterX = 0,TireCenterY = 12.5,TireCenterZ = 0;
 
 void ConstructEFi(const MatrixXi& FE, const MatrixXi& EF, MatrixXi& EFi, MatrixXd& FESigns)
@@ -500,7 +501,7 @@ public:
 
         //aggregating mesh and inter-mesh constraints
 
-		fullConstraints.insert(fullConstraints.end(), collConstraints.begin(), collConstraints.end());
+		//fullConstraints.insert(fullConstraints.end(), collConstraints.begin(), collConstraints.end());
         fullConstraints.insert(fullConstraints.end(), rigidityConstraints.begin(), rigidityConstraints.end());
 		fullConstraints.insert(fullConstraints.end(), interMeshConstraints.begin(), interMeshConstraints.end());
         fullConstraints.insert(fullConstraints.end(), barrierConstraints.begin(), barrierConstraints.end());
@@ -511,72 +512,39 @@ public:
 		for (int iteration = 0; !done && iteration < maxIterations; iteration++)
         {
 			done = true;
-            double Impulse = -1;
 			for (Constraint c : fullConstraints) {
 				VectorXd posDiffs;
 
-                if ( c.constraintType == BARRIER )
-                {
+				if (c.constraintType == BARRIER)
+				{
 					double impulse = -1;
-					for ( int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++ )
-                    {
+					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+					{
 						int indices = (c.particleIndices[ParticleIndex]) + 1;
 						VectorXd test(1); test << rawX[indices];
 
 						c.resolveConstraint(test, posDiffs);
 
 						// norm should always be positive
-						if ( posDiffs.norm() > tolerance )
-                        {
+						if (posDiffs.norm() > tolerance)
+						{
 
 							test += posDiffs;
-                            done = false;
-                            rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
-                            if ( timeStep > 0.0 && iteration > 0)
-                            {
-                             //   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
-                              //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
-							    double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
-                                rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( (  CRCoeff  * posDiffs(0) ) / timeStep ) / invMass;
-
-								/*double a = CRCoeff*posDiffs(ParticleIndex) / timeStep;
-								rawImpulses(indices) = a * 1;
-								if (impulse == -1 || impulse == 0) {
-									impulse = a;
-								}
-
-								if (impulse > 0) {
-
-									int tempOffset = 0;
-									int tempOffset2 = 0;
-									// find the mesh where this particle belongs too
-									for (int i = 0; i < meshes.size(); i++) {
-										tempOffset2 = meshes[i].rawOffset;
-										if (tempOffset2 <= indices) {
-											if (tempOffset2 > indices) {
-												break;
-											}
-											else {
-												tempOffset = i;
-											}
-										}
-
-									}
-									// update all particles of this mesh
-									for (int i = 0; i < meshes[tempOffset].currX.rows(); i++) {
-										rawImpulses(meshes[tempOffset].rawOffset + i * 3 + 1) += impulse;
-									}
-								}*/
-                            }
-
-
-
+							done = false;
+							rawX[(c.particleIndices[ParticleIndex]) + 1] = test(0);
+							if (timeStep > 0.0 && iteration > 0)
+							{
+								//   double Radius = ( posDiffs(0) > 0 ) ? ( c.radii(0) ) : ( -c.radii(0) ) ;
+								 //  rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ( ( CRCoeff * ( posDiffs(0) * ( 1 +  (2 / Radius) ) ) ) / timeStep );
+								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
+								rawImpulses[(c.particleIndices[ParticleIndex]) + 1] += ((CRCoeff  * posDiffs(0)) / timeStep) / invMass;
+							}
 						}
-                    }
+					}
 				}
 
-				if ( c.constraintType == ATTACHMENT)
-                {
+				else if (c.constraintType == ATTACHMENT)
+				{
 					VectorXd AllParticles(6);
 					AllParticles << rawX[(c.particleIndices[0])], rawX[(c.particleIndices[1])], rawX[(c.particleIndices[2])],
 						rawX[(c.particleIndices[3])], rawX[(c.particleIndices[4])], rawX[(c.particleIndices[5])];
@@ -597,30 +565,30 @@ public:
 					}
 				}
 
-				if  ( c.constraintType == RIGIDITY )
-                {
-                    VectorXd AllParticles(6);
-                    AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
-                                    rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
-                    c.updateValueGradient( AllParticles );
-                    double Range = c.isTire ? (c.refValue * ( 1 - (TirePressure / MaxTirePressure) )) : (0);
-                    if ( c.currValue > 0 || c.currValue < - tolerance - Range )
-                    {
-                        done = false;
-                        c.resolveConstraint( AllParticles, posDiffs );
-                        for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
-                        {
-                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
-                            if ( timeStep > 0.0 && iteration > 0 )
-                            {
+				else if (c.constraintType == RIGIDITY)
+				{
+					VectorXd AllParticles(6);
+					AllParticles << rawX[(c.particleIndices[0])], rawX[(c.particleIndices[1])], rawX[(c.particleIndices[2])],
+						rawX[(c.particleIndices[3])], rawX[(c.particleIndices[4])], rawX[(c.particleIndices[5])];
+					c.updateValueGradient(AllParticles);
+					double Range = c.isTire ? (c.refValue * (1 - (TirePressure / MaxTirePressure))) : (0);
+					if (c.currValue > 0.0001 || c.currValue < -tolerance - Range)
+					{
+						done = false;
+						c.resolveConstraint(AllParticles, posDiffs);
+						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+						{
+							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+							if (timeStep > 0.0 && iteration > 0)
+							{
 								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( CRCoeff * posDiffs(ParticleIndex) / timeStep ) / invMass;
-                            }
-                        }
-                    }
-                }
+								rawImpulses[(c.particleIndices[ParticleIndex])] += (CRCoeff * posDiffs(ParticleIndex) / timeStep) / invMass;
+							}
+						}
+					}
+				}
 
-				if (c.constraintType == ATTACHMENTSTATIC)
+				else if (c.constraintType == ATTACHMENTSTATIC)
 				{
 					VectorXd CurrentParticlePositions(c.particleIndices.size());
 					for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++) {
@@ -643,32 +611,35 @@ public:
 					}
 				}
 
-                /*if ( c.constraintType == COLLISION )
-                {
-                    /*
-                    VectorXd AllParticles(6);
-                    AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
-                                    rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
-                    c.updateValueGradient( AllParticles );
-                    if ( abs(c.currValue) > tolerance)
-                    {
-                        done = false;
-                        c.resolveConstraint( AllParticles, posDiffs );
-                        for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
-                        {
-                            rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
-                            if ( timeStep > 0.0 && iteration > 0)
-                            {
+				/*if ( c.constraintType == COLLISION )
+				{
+					/*
+					VectorXd AllParticles(6);
+					AllParticles << rawX[ ( c.particleIndices[0] )], rawX[ ( c.particleIndices[1] ) ], rawX[ ( c.particleIndices[2] ) ],
+									rawX[ ( c.particleIndices[3] )], rawX[ ( c.particleIndices[4] ) ], rawX[ ( c.particleIndices[5] ) ];
+					c.updateValueGradient( AllParticles );
+					if ( abs(c.currValue) > tolerance)
+					{
+						done = false;
+						c.resolveConstraint( AllParticles, posDiffs );
+						for (int ParticleIndex = 0; ParticleIndex < c.particleIndices.size(); ParticleIndex++)
+						{
+							rawX[(c.particleIndices[ParticleIndex])] += posDiffs(ParticleIndex);
+							if ( timeStep > 0.0 && iteration > 0)
+							{
 								double invMass = c.invMassMatrix.row(ParticleIndex)[ParticleIndex];
-                                rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff ) * posDiffs(ParticleIndex) ) / timeStep  / invMass;
-                            }
-                        }
-                    }
-                    */
-                }
+								rawImpulses[(c.particleIndices[ParticleIndex])] += ( ( CRCoeff ) * posDiffs(ParticleIndex) ) / timeStep  / invMass;
+							}
+						}
+					}
+					*/
+			}
 
 			for (Spring s : springs) {
+				//s.updateSpringConstraint()
 				double impulse = s.getImpulse(rawX, timeStep);
+				double totalImpulse = s.getTotalImpulse(rawX, timeStep);
+
 				rawImpulses[s.getParticleIndice1()] += impulse;
 				rawImpulses[s.getParticleIndice2()] += -impulse;	
 			}
@@ -783,8 +754,8 @@ public:
 
 			//interMeshConstraints.push_back(Constraint(ATTACHMENT, particleIndices, rawRadii, rawInvMasses, edgeLength, 1.0, false));
 
-			double K = 50000;
-			double dampingCoeffecient = 25000;
+			double K = SpringConstant;
+			double dampingCoeffecient = 120000;
 			// + 1 since y axis
 			springs.push_back(Spring(rawIndice1+1, rawIndice2+1, invMass1, invMass2, edgeLength, K, dampingCoeffecient));
 		}

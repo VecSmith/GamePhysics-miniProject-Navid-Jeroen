@@ -21,6 +21,7 @@ double platWidth=100.0;
 double platHeight=10.0;
 double RigidityAllowance = 0.0;
 double TirePressure = 40.0;
+double SpringConstant = 500000;
 
 Scene scene;
 
@@ -166,6 +167,12 @@ int main(int argc, char *argv[])
         },[&]() {
             return TirePressure;
         });
+
+		viewer.ngui->addVariable<double>("Spring constant", [&](double val_2) {
+			SpringConstant = val_2;
+		}, [&]() {
+			return SpringConstant;
+		});
 
         // call to generate menu
         viewer.screen->performLayout();
